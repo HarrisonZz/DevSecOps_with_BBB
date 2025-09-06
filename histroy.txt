@@ -1,80 +1,50 @@
-Server:
-
-sudo sysctl -w net.ipv4.ip_forward=1
-sudo iptables -A FORWARD -i usb1 -o enp0s31f6 -j ACCEPT
-curl -sfL https://get.k3s.io | sh -
-
-sudo iptables -A FORWARD -p udp --dport 53 -j ACCEPT
-sudo iptables -A FORWARD -p tcp --dport 53 -j ACCEPT
-echo "nameserver 8.8.8.8" | sudo tee /etc/resolv.conf
+## K3S-Server
+sudo ip route add 192.168.6.0/24 via 192.168.20.1 dev eth2
+curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="server --node-ip 192.168.20.11 --tls-san 192.168.20.11 --tls-san 192.168.6.1" sh -
+sudo apt update
 sudo apt-get install -y chrony
-sudo vim /etc/chrony/chrony.conf 
-sudo systemctl restart chrony
-sudo systemctl enable chrony
-
+sudo timedatectl set-ntp true
+sudo timedatectl set-timezone Asia/Taipei
+sudo nano /etc/chrony/chrony.conf
+--------------------------------------
+server time.google.com iburst
+server ntp.aliyun.com iburst
+allow 192.168.7.0/24
+allow 192.168.20.0/24
+driftfile /var/lib/chrony/chrony.drift
+makestep 1.0 3
+rtcsync
+--------------------------------------
+sudo systemctl restart chronyd
+sudo systemctl restart chronyd
 sudo cat /var/lib/rancher/k3s/server/node-token
 
-sudo k3s kubectl apply -f pod.yaml 
-sudo k3s kubectl get pods -o wide
-sudo k3s kubectl describe pods web-server -o wide
 
-sudo ctr -n k8s.io images pull --platform linux/arm/v7 docker.io/harrisonchen0418/go_build:BBB
-sudo ctr -n k8s.io images export --platform linux/arm/v7 go_build_BBB.tar docker.io/harrisonchen0418/go_build:BBB
-scp go_build_BBB.tar debian@192.168.7.2:/tmp/
-
-sudo ctr -n k8s.io images pull --platform linux/arm/v7 docker.io/rancher/mirrored-pause:3.6
-sudo ctr -n k8s.io images pull --platform linux/arm/v7 docker.io/rancher/mirrored-coredns-coredns:1.10.1
-sudo ctr -n k8s.io images export --platform linux/arm/v7 /tmp/k3s-armv7-base.tar docker.io/rancher/mirrored-pause:3.6 docker.io/rancher/mirrored-coredns-coredns:1.10.1
-
-Beagle Bone Black
-
+## Beagle Bone Black
 echo "nameserver 8.8.8.8" | sudo tee /etc/resolv.conf
 echo "nameserver 8.8.4.4" | sudo tee -a /etc/resolv.conf
-ping -c 4 www.google.com
-sudo timedatectl set-ntp true
-sudo timedatectl status
-sudo apt-get install -y chron
-sudo apt-get install -y chrony
-
-sudo timedatectl status
-sudo systemctl restart systemd-timesyncd
-sudo vim /etc/systemd/timesyncd.conf
-sudo systemctl restart systemd-timesyncd
-sudo systemctl unmask systemd-timesyncd
-sudo systemctl enable systemd-timesyncd
-vim chrony/chrony.conf 
-sudo vim chrony/chrony.conf 
-sudo systemctl restart chrony
-sudo systemctl enable chrony
+sudo dhclient usb0
+sudo ip route add 192.168.20.0/24 via 192.168.6.1 dev usb1
+sudo nano /etc/chrony/chrony.conf
+--------------------------------------
+server 192.168.20.11 iburst
+makestep 1.0 3
+--------------------------------------
+sudo systemctl restart chronyd
+sudo systemctl disable --now systemd-timesyncd
+sudo chronyc -a makestep
+chronyc tracking
 chronyc sources -v
-date
-sudo apt-get update
-ping 172.30.60.103
-curl https://172.30.60.103:6443
-export SERVER_IP=172.30.60.103
-
-export K3S_TOKEN=K10c9cd4f304c4fd4a9de31c2d433d2c975858012a28e721cbbd23e114b8219da56::server:e5ba17af28d2bf9d42c9bb76f8be8fb2
-curl -sfL https://get.k3s.io | K3S_URL=https://$SERVER_IP:6443 K3S_TOKEN=$K3S_TOKEN sh -
-vim pod.yaml
-echo "nameserver 172.16.0.99" | sudo tee /etc/resolv.conf
-echo "nameserver 172.16.0.100" | sudo tee -a /etc/resolv.conf
-ping www.google.com
-
-sudo ctr -n k8s.io images import /tmp/go_build_BBB.tar 
-sudo ctr -n k8s.io images list
-sudo ctr -n k8s.io images list | grep harrisonchen0418
-sudo ctr -n k8s.io images pull docker.io/rancher/mirrored-pause:3.6
-sudo ctr -n k8s.io images import /tmp/k3s-armv7-base.tar 
-sudo ctr -n k8s.io images list
+sudo timedatectl status
+export K3S_TOKEN=K10e5ea24c65a864c9c188f8eee24071a1ac6fd4bfb9ba3c665424445c6fad7c2d1::server:405eb63675b2b4ecddba11710b9510dc
+export SERVER_IP=192.168.6.1
+curl https://192.168.6.1:400
+curl -sfL https://get.k3s.io | K3S_URL=https://$SERVER_IP:400 K3S_TOKEN=$K3S_TOKEN sh -
 
 
-sudo apt-get update
-sudo apt-get install -y chrony
-編輯 /etc/chrony/chrony.conf
-pool 192.168.7.1 iburst
-sudo systemctl restart chrony
-sudo systemctl enable chrony
+## Windows host
 
-在 host 跑 chrony 當 NTP server，BBB 也用 chrony 當 client，最乾淨。
+Wi-Fi網路介面卡 -> 編輯 -> 共用 -> 乙太網路 4 or 5 
 
-
+netsh advfirewall firewall add rule name="Allow K3s" dir=in action=allow protocol=TCP localport=400
+netsh interface portproxy add v4tov4 listenaddress=192.168.6.1 listenport=400 connectaddress=192.168.20.11 connectport=6443
