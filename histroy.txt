@@ -16,7 +16,7 @@ makestep 1.0 3
 rtcsync
 --------------------------------------
 sudo systemctl restart chronyd
-sudo systemctl restart chronyd
+sudo systemctl enabled chronyd
 sudo cat /var/lib/rancher/k3s/server/node-token
 
 
@@ -41,6 +41,15 @@ export SERVER_IP=192.168.6.1
 curl https://192.168.6.1:400
 curl -sfL https://get.k3s.io | K3S_URL=https://$SERVER_IP:400 K3S_TOKEN=$K3S_TOKEN sh -
 
+
+sudo kubectl label node k3s-agent role=monitoring
+sudo kubectl create ns monitoring
+curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo update
+helm install kps prometheus-community/kube-prometheus-stack -n monitoring   --set grafana.adminPassword='admin'   --set prometheus.prometheusSpec.retention='15d'   --set prometheus.prometheusSpec.resources.requests.memory='400Mi'   --set prometheus.prometheusSpec.resources.limits.memory='1Gi'
+helm upgrade --install vm-prometheus prometheus-community/prometheus   -n monitoring   --reset-values   --set alertmanager.enabled=false   --set kubeStateMetrics.enabled=false   --set kube-state-metrics.enabled=false   --set nodeExporter.enabled=false   --set prometheus-node-exporter.enabled=false   --set pushgateway.enabled=false   --set prometheus-pushgateway.enabled=false   --set server.persistentVolume.enabled=false   --set server.nodeSelector."kubernetes\.io/hostname"=k3s-agent   --set server.service.type=ClusterIP   --set server.service.port=80
+helm upgrade --install vm-node-exporter prometheus-community/prometheus-node-exporter   -n monitoring   --set nodeSelector."kubernetes\.io/hostname"=k3s-agent   --set hostNetwork=true
 
 ## Windows host
 

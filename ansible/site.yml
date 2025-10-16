@@ -1,0 +1,249 @@
+---
+    # 請在啟動後手動執行下列指令建立 Tunnel：
+    # cloudflared tunnel create rds-proxy
+    # cloudflared tunnel route dns rds-proxy rds.hrscyj.xyz
+    # cloudflared tunnel run rds-proxy
+- name: Configure and install K3s Server (VM)
+  hosts: k3s_server
+  become: yes
+  vars:
+    chrony_conf_path: /etc/chrony/chrony.conf
+  tasks:
+    - name: Replace /etc/apt/sources.list with Bookworm entries
+      blockinfile:
+        path: /etc/apt/sources.list
+        create: yes
+        owner: root
+        group: root
+        mode: '0644'
+        block: |
+          deb http://deb.debian.org/debian bookworm main contrib non-free-firmware non-free
+          deb http://deb.debian.org/debian bookworm-updates main contrib non-free-firmware non-free
+          deb http://security.debian.org/debian-security bookworm-security main contrib non-free-firmware non-free
+
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: apt-get update
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Install chrony
+      apt:
+        name: chrony
+        state: present
+
+    - name: Configure chrony sources
+      copy:
+        dest: "{{ chrony_conf_path }}"
+        owner: root
+        group: root
+        mode: "0644"
+        content: |
+          {% for src in chrony_time_sources %}
+          pool {{ src }} iburst
+          {% endfor %}
+          driftfile /var/lib/chrony/chrony.drift
+          makestep 1.0 3
+          rtcsync
+          keyfile /etc/chrony/chrony.keys
+          leapsectz right/UTC
+      notify: Restart chrony
+
+    - name: Enable & start chronyd (if systemd is present)
+      service:
+        name: chrony
+        state: started
+        enabled: yes
+      when: ansible_service_mgr == "systemd"
+
+    - name: Set timezone
+      community.general.timezone:
+        name: "{{ timezone }}"
+
+    - name: Install K3s server via get.k3s.io
+      shell: |
+        curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="server --node-ip={{ k3s_server_ip }} --write-kubeconfig-mode 644" sh -
+      args:
+        creates: /usr/local/bin/k3s
+      register: k3s_server_install
+
+    - name: Ensure k3s service is enabled and running
+      service:
+        name: k3s
+        state: started
+        enabled: yes
+      when: ansible_service_mgr == "systemd"
+
+    - name: Wait for node-token to be created
+      wait_for:
+        path: /var/lib/rancher/k3s/server/node-token
+        timeout: 120
+
+    - name: Read node-token
+      slurp:
+        src: /var/lib/rancher/k3s/server/node-token
+      register: k3s_token_file
+
+    - name: Expose token as hostvar on server (b64 content)
+      set_fact:
+        k3s_node_token: "{{ k3s_token_file.content }}"
+
+  handlers:
+    - name: Restart chrony
+      service:
+        name: chrony
+        state: restarted
+      when: ansible_service_mgr == "systemd"
+
+# -----------------------
+
+- name: Configure and join WSL2 Agent
+  hosts: k3s_agents_wsl
+  become: yes
+  vars:
+    chrony_conf_path: /etc/chrony/chrony.conf
+    server_host: "{{ groups['k3s_server'][0] }}"
+    node_token_decoded: "{{ hostvars[server_host].k3s_node_token | b64decode | trim }}"
+  tasks:
+    - name: Check if k3s-agent service exists
+      shell: systemctl list-units --type=service | grep -q k3s-agent
+      register: k3s_agent_check
+      ignore_errors: yes
+
+    - name: Uninstall existing k3s agent if present
+      shell: /usr/local/bin/k3s-agent-uninstall.sh
+      when: k3s_agent_check.rc == 0
+      become: yes
+
+    - name: Install K3s agent via get.k3s.io
+      shell: |
+        curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="agent --node-ip {{ wsl_node_ip }}" K3S_NODE_NAME="{{ wsl_node_name }}" K3S_URL="{{ k3s_server_url }}" K3S_TOKEN="{{ node_token_decoded }}" sh -
+      args:
+        creates: /usr/local/bin/k3s-agent
+
+    - name: Ensure k3s-agent is enabled and running (if systemd present)
+      service:
+        name: k3s-agent
+        state: started
+        enabled: yes
+      when: ansible_service_mgr == "systemd"
+      ignore_errors: yes
+
+# -----------------------
+
+- name: Configure and join BeagleBone Black Agent
+  hosts: k3s_agents_bbb
+  become: yes
+  vars:
+    chrony_conf_path: /etc/chrony/chrony.conf
+    server_host: "{{ groups['k3s_server'][0] }}"
+    node_token_decoded: "{{ hostvars[server_host].k3s_node_token | b64decode | trim }}"
+    iface_name: eth0
+    static_ip: 192.168.100.10
+    netmask: 255.255.255.0
+
+  tasks:
+    - name: Install chrony
+      apt:
+        name: chrony
+        state: present
+        update_cache: yes
+
+    - name: Configure chrony servers
+      copy:
+        dest: /etc/chrony/chrony.conf
+        mode: '0644'
+        content: |
+          pool time.google.com iburst
+          pool time.cloudflare.com iburst
+          pool 0.tw.pool.ntp.org iburst
+          driftfile /var/lib/chrony/chrony.drift
+          rtcsync
+          makestep 1.0 3
+          logdir /var/log/chrony
+
+    - name: Enable & restart chrony
+      systemd:
+        name: chrony
+        enabled: yes
+        state: restarted
+
+    - name: Verify time sync (chronyc sources)
+      shell: chronyc -n sources -v || true
+      register: chrony_sources
+      changed_when: false
+
+    - name: Set timezone
+      community.general.timezone:
+        name: "{{ timezone }}"
+    
+    - name: Step system clock immediately via chrony
+      become: yes
+      command: chronyc makestep
+
+    # ====== BBB 專屬網路設定 ======
+    - name: Ensure NetworkManager is installed
+      package:
+        name: NetworkManager
+        state: present
+
+    - name: Configure static IP via nmcli
+      community.general.nmcli:
+        conn_name: "{{ iface_name }}"
+        ifname: "{{ iface_name }}"
+        type: ethernet
+        ip4: "{{ static_ip }}"
+        state: present
+        autoconnect: yes
+
+    - name: Restart NetworkManager
+      service:
+        name: NetworkManager
+        state: restarted
+    
+    - name: Add default route via BBB gateway (idempotent)
+      ansible.builtin.command: ip route add default via {{ bbb_default_gw }}
+      register: route_add
+      failed_when: route_add.rc not in [0,2]
+      changed_when: route_add.rc == 0
+
+    - name: Run dhclient on usb iface (best effort)
+      ansible.builtin.command: dhclient {{ bbb_usb_iface }}
+      register: dhcp_usb
+      failed_when: false
+      changed_when: "'bound to' in dhcp_usb.stdout or 'bound to' in dhcp_usb.stderr"
+
+    # ===========================================
+
+    - name: Check if k3s-agent service exists
+      shell: systemctl list-units --type=service | grep -q k3s-agent
+      register: k3s_agent_check
+      ignore_errors: yes
+
+    - name: Uninstall existing k3s agent if present
+      shell: /usr/local/bin/k3s-agent-uninstall.sh
+      when: k3s_agent_check.rc == 0
+      become: yes
+
+    - name: Install K3s agent via get.k3s.io
+      shell: |
+        curl -sfL https://get.k3s.io | K3S_URL="{{ k3s_server_url }}" K3S_TOKEN="{{ node_token_decoded }}" INSTALL_K3S_EXEC='agent --node-ip {{ bbb_node_ip }}' sh -
+      args:
+        creates: /usr/local/bin/k3s-agent
+
+    - name: Ensure k3s-agent is enabled and running
+      service:
+        name: k3s-agent
+        state: started
+        enabled: yes
+      when: ansible_service_mgr == "systemd"
+
+  handlers:
+    - name: Restart chrony
+      service:
+        name: chrony
+        state: restarted
+      when: ansible_service_mgr == "systemd"
