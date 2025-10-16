@@ -5,7 +5,7 @@ Host k3s-server
   UserKnownHostsFile /dev/null
   StrictHostKeyChecking no
   PasswordAuthentication no
-  IdentityFile /home/harrison/DevSecOps_Project/ansible/private_key
+  IdentityFile ./private_key
   IdentitiesOnly yes
   LogLevel FATAL
   PubkeyAcceptedKeyTypes +ssh-rsa
