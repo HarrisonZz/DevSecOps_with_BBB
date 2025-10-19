@@ -3,6 +3,49 @@
     # cloudflared tunnel create rds-proxy
     # cloudflared tunnel route dns rds-proxy rds.hrscyj.xyz
     # cloudflared tunnel run rds-proxy
+- name: Update HostName IPs
+  hosts: localhost
+  vars:
+    vagrant_config_path: "{{ lookup('env','HOME') }}/.ssh/vagrant_config"
+
+    # VM 名稱與目標 IP 對照表
+    vm_ip_map:
+      k3s-controlplane: 192.168.100.20
+      k3s-agent: 192.168.100.21
+
+  tasks:
+    - name: Verify vagrant_config exists
+      stat:
+        path: "{{ vagrant_config_path }}"
+      register: cfg_stat
+
+    - name: Abort if config not found
+      fail:
+        msg: "File not found: {{ vagrant_config_path }}"
+      when: not cfg_stat.stat.exists
+
+    - name: Ensure HostName for each VM (idempotent, block-scoped)
+      loop: "{{ vm_ip_map | dict2items }}"
+      vars:
+        vm_name: "{{ item.key }}"
+        vm_ip: "{{ item.value }}"
+      community.general.ssh_config:
+        ssh_config_file: "{{ vagrant_config_path }}"   # 例如 /home/harrison/.ssh/vagrant_config
+        host: "{{ vm_name }}"               # k3s-controlplane / k3s-agent
+        hostname: "{{ vm_ip }}"             # 192.168.100.20 / .21
+        identity_file: "{{ lookup('env','HOME') }}/.ssh/{{ vm_name }}_key"
+        port: 22
+        state: present
+
+
+    - name: Confirm update
+      ansible.builtin.shell: grep -A1 "Host " {{ vagrant_config_path }}
+      register: result
+      changed_when: false
+
+    - debug:
+        var: result.stdout_lines
+
 - name: Configure and install K3s Server (VM)
   hosts: k3s_server
   become: yes
@@ -62,10 +105,18 @@
     - name: Set timezone
       community.general.timezone:
         name: "{{ timezone }}"
+    
+    - name: Ensure iptables tools are installed
+      become: yes
+      ansible.builtin.package:
+        name:
+          - iptables
+          - iptables-persistent
+        state: present
 
     - name: Install K3s server via get.k3s.io
       shell: |
-        curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="server --node-ip={{ k3s_server_ip }} --write-kubeconfig-mode 644" sh -
+        curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--flannel-backend=vxlan --flannel-iface=eth1 --disable=servicelb --disable=traefik --cluster-cidr={{ cluster_cidr }} --service-cidr={{ service_cidr }} --cluster-dns={{ cluster_dns }} --node-ip={{ k3s_server_ip }} --write-kubeconfig-mode=644 --kube-proxy-arg=proxy-mode=ipvs" sh -s - server --cluster-init
       args:
         creates: /usr/local/bin/k3s
       register: k3s_server_install
@@ -100,27 +151,126 @@
 
 # -----------------------
 
-- name: Configure and join WSL2 Agent
-  hosts: k3s_agents_wsl
+- name: Wait for K3s API and fetch kubeconfig
+  hosts: localhost
+  tasks:
+    - name: Wait for K3s API port ready
+      wait_for:
+        host: "{{ k3s_server_ip }}"
+        port: 6443
+        delay: 5
+        timeout: 300
+      delegate_to: localhost
+
+    - name: Read kubeconfig from server
+      slurp:
+        src: /etc/rancher/k3s/k3s.yaml
+      register: kubeconfig_raw
+      delegate_to: controlplane
+
+    - name: Save kubeconfig locally
+      copy:
+        content: "{{ kubeconfig_raw.content | b64decode | regex_replace('127\\.0\\.0\\.1', k3s_server_ip) }}"
+        dest: "/home/{{ ansible_user }}/.kubeconfig"
+    
+    - name: Ensure export KUBECONFIG line exists in ~/.bashrc
+      lineinfile:
+        path: "{{ lookup('env','HOME') }}/.bashrc"
+        line: 'export KUBECONFIG=~/.kubeconfig'
+        insertafter: EOF
+        state: present
+    
+    - name: Source bashrc to make KUBECONFIG effective immediately
+      shell: source ~/.bashrc
+      args:
+        executable: /bin/bash
+
+
+#------------------------
+
+- name: Configure and join VM Agent
+  hosts: k3s_agent
   become: yes
   vars:
     chrony_conf_path: /etc/chrony/chrony.conf
     server_host: "{{ groups['k3s_server'][0] }}"
     node_token_decoded: "{{ hostvars[server_host].k3s_node_token | b64decode | trim }}"
   tasks:
-    - name: Check if K3s agent is installed
-      stat:
-        path: /usr/local/bin/k3s
-      register: k3s_agent_bin
+    - name: Replace /etc/apt/sources.list with Bookworm entries
+      blockinfile:
+        path: /etc/apt/sources.list
+        create: yes
+        owner: root
+        group: root
+        mode: '0644'
+        block: |
+          deb http://deb.debian.org/debian bookworm main contrib non-free-firmware non-free
+          deb http://deb.debian.org/debian bookworm-updates main contrib non-free-firmware non-free
+          deb http://security.debian.org/debian-security bookworm-security main contrib non-free-firmware non-free
 
-    - name: Uninstall existing K3s agent (if any)
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: apt-get update
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Install chrony
+      apt:
+        name: chrony
+        state: present
+
+    - name: Configure chrony sources
+      copy:
+        dest: "{{ chrony_conf_path }}"
+        owner: root
+        group: root
+        mode: "0644"
+        content: |
+          {% for src in chrony_time_sources %}
+          pool {{ src }} iburst
+          {% endfor %}
+          driftfile /var/lib/chrony/chrony.drift
+          makestep 1.0 3
+          rtcsync
+          keyfile /etc/chrony/chrony.keys
+          leapsectz right/UTC
+      notify: Restart chrony
+
+    - name: Enable & start chronyd (if systemd is present)
+      service:
+        name: chrony
+        state: started
+        enabled: yes
+      when: ansible_service_mgr == "systemd"
+
+    - name: Set timezone
+      community.general.timezone:
+        name: "{{ timezone }}"
+    
+    - name: Ensure iptables tools are installed
+      become: yes
+      ansible.builtin.package:
+        name:
+          - iptables
+          - iptables-persistent
+        state: present
+
+    - name: Check if k3s-agent service exists
+      shell: systemctl list-units --type=service | grep -q k3s-agent
+      register: k3s_agent_check
+      ignore_errors: yes
+
+    - name: Uninstall existing k3s agent if present
       shell: /usr/local/bin/k3s-agent-uninstall.sh
-      when: k3s_agent_bin.stat.exists
-      ignore_errors: true
+      when: k3s_agent_check.rc == 0
+      become: yes
 
     - name: Install K3s agent via get.k3s.io
       shell: |
-        curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="agent --node-ip {{ wsl_node_ip }}" K3S_NODE_NAME="{{ wsl_node_name }}" K3S_URL="{{ k3s_server_url }}" K3S_TOKEN="{{ node_token_decoded }}" sh -
+        curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="agent --flannel-iface=eth1 --node-ip {{ node_vm_ip }}" K3S_NODE_NAME="{{ node_vm_name }}" K3S_URL="{{ k3s_server_url }}" K3S_TOKEN="{{ node_token_decoded }}" sh -
       args:
         creates: /usr/local/bin/k3s-agent
 
@@ -131,17 +281,12 @@
         enabled: yes
       when: ansible_service_mgr == "systemd"
       ignore_errors: yes
-    
-    - name: Read kubeconfig from server
-      slurp:
-        src: /etc/rancher/k3s/k3s.yaml
-      register: kubeconfig_raw
-      delegate_to: k3s-server
-
-    - name: Save kubeconfig locally
-      copy:
-        content: "{{ kubeconfig_raw.content | b64decode | regex_replace('127\\.0\\.0\\.1', k3s_server_ip) }}"
-        dest: "/home/{{ ansible_user }}/.kubeconfig"
+  handlers:
+    - name: Restart chrony
+      service:
+        name: chrony
+        state: restarted
+      when: ansible_service_mgr == "systemd"
 
 # -----------------------
 
@@ -163,6 +308,67 @@
         name: networking
         state: restarted
   tasks:
+     # ====== BBB 專屬網路設定 ======
+    - name: Configure static IP for eth0
+      become: yes
+      ansible.builtin.shell: |
+        ip addr show eth0 | grep -q "192.168.100.10" || ip addr add 192.168.100.10/24 dev eth0
+        ip link set eth0 up
+
+    # - name: Run dhclient on usb iface (best effort)
+    #   ansible.builtin.command: dhclient {{ bbb_usb_iface }}
+    #   register: dhcp_usb
+    #   failed_when: false
+    #   changed_when: "'bound to' in dhcp_usb.stdout or 'bound to' in dhcp_usb.stderr"
+
+    - name: Configure usb0 with static IP and DNS
+      become: yes
+      copy:
+        dest: /etc/network/interfaces.d/usb0
+        content: |
+          auto usb0
+          iface usb0 inet static
+            address 192.168.137.10
+            netmask 255.255.255.0
+            gateway 192.168.137.1
+            dns-nameservers 8.8.8.8 1.1.1.1
+
+    - name: Force usb0 down
+      become: yes
+      command: ip link set usb0 down
+      ignore_errors: yes
+
+    - name: Flush usb0 addresses
+      become: yes
+      command: ip addr flush dev usb0
+      ignore_errors: yes
+
+    - name: Bring usb0 up manually (skip ifup)
+      become: yes
+      command: ip link set usb0 up
+
+    - name: Apply usb0 config via ifup
+      become: yes
+      command: ifup --force usb0
+
+    - name: Add default route via BBB gateway (idempotent)
+      ansible.builtin.command: ip route add default via {{ bbb_default_gw }}
+      register: route_add
+      failed_when: route_add.rc not in [0,2]
+      changed_when: route_add.rc == 0
+
+    # - name: Configure DNS servers via systemd-resolved
+    #   lineinfile:
+    #     path: /etc/systemd/resolved.conf
+    #     regexp: '^DNS='
+    #     line: 'DNS=8.8.8.8 1.1.1.1'
+    #   notify: Restart systemd-resolved
+
+    - name: Restart systemd-resolved
+      service:
+        name: systemd-resolved
+        state: restarted
+
     - name: Install chrony
       apt:
         name: chrony
@@ -201,29 +407,6 @@
       become: yes
       command: chronyc makestep
 
-    # ====== BBB 專屬網路設定 ======
-    - name: Configure static network
-      copy:
-        dest: /etc/network/interfaces.d/eth0.cfg
-        content: |
-          auto eth0
-          iface eth0 inet static
-              address 192.168.100.10
-              netmask 255.255.255.0
-      notify: Restart networking
-    
-    - name: Add default route via BBB gateway (idempotent)
-      ansible.builtin.command: ip route add default via {{ bbb_default_gw }}
-      register: route_add
-      failed_when: route_add.rc not in [0,2]
-      changed_when: route_add.rc == 0
-
-    - name: Run dhclient on usb iface (best effort)
-      ansible.builtin.command: dhclient {{ bbb_usb_iface }}
-      register: dhcp_usb
-      failed_when: false
-      changed_when: "'bound to' in dhcp_usb.stdout or 'bound to' in dhcp_usb.stderr"
-
     # ===========================================
 
     - name: Check if k3s-agent service exists
@@ -238,7 +421,7 @@
 
     - name: Install K3s agent via get.k3s.io
       shell: |
-        curl -sfL https://get.k3s.io | K3S_URL="{{ k3s_server_url }}" K3S_TOKEN="{{ node_token_decoded }}" INSTALL_K3S_EXEC='agent --node-ip {{ bbb_node_ip }}' sh -
+        curl -sfL https://get.k3s.io | K3S_URL="{{ k3s_server_url }}" K3S_TOKEN="{{ node_token_decoded }}" INSTALL_K3S_EXEC='agent --flannel-iface=eth0 --node-label task=application --node-ip {{ bbb_node_ip }}' sh -
       args:
         creates: /usr/local/bin/k3s-agent
 
