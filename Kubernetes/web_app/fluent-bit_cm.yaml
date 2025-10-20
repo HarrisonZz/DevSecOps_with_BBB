@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fluentbit-config
+data:
+  fluent-bit.conf: |
+    [SERVICE]
+        Flush        5
+        Log_Level    info
+
+    [INPUT]
+        Name         tail
+        Path         /var/log/app/app.log
+        Tag          app.go
+        Refresh_Interval 5
+        Skip_Long_Lines On
+        DB           /var/fluent-bit/db/flb.db
+        DB.Sync      Full
+
+    [OUTPUT]
+        Name         stdout
+        Match        *
