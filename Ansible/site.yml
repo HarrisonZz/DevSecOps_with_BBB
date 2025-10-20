@@ -281,6 +281,25 @@
         enabled: yes
       when: ansible_service_mgr == "systemd"
       ignore_errors: yes
+    
+    - name: Ensure base directory exists
+      become: yes
+      file:
+        path: /var/lib/rancher/k3s
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Ensure storage subdirectory exists and writable
+      become: yes
+      file:
+        path: /var/lib/rancher/k3s/storage
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
   handlers:
     - name: Restart chrony
       service:
@@ -314,12 +333,6 @@
       ansible.builtin.shell: |
         ip addr show eth0 | grep -q "192.168.100.10" || ip addr add 192.168.100.10/24 dev eth0
         ip link set eth0 up
-
-    # - name: Run dhclient on usb iface (best effort)
-    #   ansible.builtin.command: dhclient {{ bbb_usb_iface }}
-    #   register: dhcp_usb
-    #   failed_when: false
-    #   changed_when: "'bound to' in dhcp_usb.stdout or 'bound to' in dhcp_usb.stderr"
 
     - name: Configure usb0 with static IP and DNS
       become: yes
@@ -356,13 +369,6 @@
       register: route_add
       failed_when: route_add.rc not in [0,2]
       changed_when: route_add.rc == 0
-
-    # - name: Configure DNS servers via systemd-resolved
-    #   lineinfile:
-    #     path: /etc/systemd/resolved.conf
-    #     regexp: '^DNS='
-    #     line: 'DNS=8.8.8.8 1.1.1.1'
-    #   notify: Restart systemd-resolved
 
     - name: Restart systemd-resolved
       service:
@@ -431,6 +437,24 @@
         state: started
         enabled: yes
       when: ansible_service_mgr == "systemd"
+  
+    - name: Ensure base directory exists
+      become: yes
+      file:
+        path: /var/lib/rancher/k3s
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Ensure storage subdirectory exists and writable
+      become: yes
+      file:
+        path: /var/lib/rancher/k3s/storage
+        state: directory
+        owner: root
+        group: root
+        mode: '0777'
 
   handlers:
     - name: Restart chrony
@@ -438,3 +462,38 @@
         name: chrony
         state: restarted
       when: ansible_service_mgr == "systemd"
+
+- name: Setup periodic cache cleanup
+  hosts: k3s_agents_bbb
+  become: yes
+
+  tasks:
+    - name: Deploy cache cleanup script
+      copy:
+        dest: /usr/local/bin/clear-cache.sh
+        mode: '0755'
+        content: |
+          #!/bin/bash
+
+          LOG=/var/log/clear-cache.log
+
+          echo "[INFO] $(date '+%Y-%m-%d %H:%M:%S') Start cache cleanup" | tee -a $LOG
+          free -h | tee -a $LOG
+          sync
+          echo 3 > /proc/sys/vm/drop_caches
+          echo "[INFO] After cleanup:" | tee -a $LOG
+          free -h | tee -a $LOG
+          echo "-------------------------------------------------------" >> $LOG
+
+    - name: Ensure log file exists
+      file:
+        path: /var/log/clear-cache.log
+        state: touch
+        owner: root
+        mode: '0644'
+
+    - name: Schedule cache cleanup every 5 minutes
+      cron:
+        name: "Clear Linux cache every 5 minutes"
+        job: "/usr/local/bin/clear-cache.sh"
+        minute: "*/5"
