@@ -17,12 +17,36 @@ spec:
       serviceAccountName: node-inspector
       nodeSelector:
         task: application
+      initContainers:
+      - name: fluent-bit
+        image: cr.fluentbit.io/fluent/fluent-bit:4.0.13-arm-v7
+        restartPolicy: Always
+        command: ["fluent-bit/bin/fluent-bit"]
+        args: ["-c", "/fluent-bit/etc/fluent-bit.conf"]
+        volumeMounts:
+          - name: log-volume
+            mountPath: /var/log/app
+          - name: fluentbit-config
+            mountPath: /fluent-bit/etc
+          - name: fluentbit-db
+            mountPath: /var/fluent-bit/db
+        resources:
+          limits:
+            cpu: "50m"
+            memory: "60Mi"
       containers:
       - name: web-app
         image: harrisonchen0418/go_build:BBB
         imagePullPolicy: Always
         ports:
         - containerPort: 8080
+        volumeMounts:
+        - name: log-volume
+          mountPath: /var/log/app
+        - name: i2c-dev
+          mountPath: /dev/i2c-2
+        securityContext:
+          privileged: true
         env:
         - name: NODE_NAME
           valueFrom:
@@ -35,4 +59,19 @@ spec:
             secretKeyRef:
               name: redis-secret
               key: password
+        - name: LOG_PATH
+          value: "/var/log/app/app.log"
+      volumes:
+        - name: log-volume
+          emptyDir: {}
+        - name: fluentbit-config
+          configMap:
+            name: fluentbit-config
+        - name: fluentbit-db
+          persistentVolumeClaim:
+            claimName: fluentbit-db-pvc
+        - name: i2c-dev
+          hostPath:
+            path: /dev/i2c-2
+            type: CharDevice
 
