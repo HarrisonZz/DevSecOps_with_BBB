@@ -1,0 +1,5 @@
+Terraform_and_Vagrant/cloud
+*.tfstate
+*.backup
+.terraform
+*.lock.hcl

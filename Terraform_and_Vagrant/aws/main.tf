@@ -1,5 +1,15 @@
+module "lambda" {
+  source = "./modules/lambda"
+}
+
+module "api_gateway" {
+  source            = "./modules/api_gateway"
+  lambda_invoke_arn = module.lambda.lambda_invoke_arn
+  lambda_name       = module.lambda.lambda_name
+}
+
 provider "aws" {
-  region = "ap-east-2"
+  region = "ap-northeast-2"
 }
 
 resource "aws_vpc" "main" {
@@ -14,7 +24,7 @@ resource "aws_subnet" "public_subnet" {
   vpc_id                  = aws_vpc.main.id
   cidr_block              = "10.0.1.0/24"
   map_public_ip_on_launch = true
-  availability_zone       = "ap-east-2a"
+  availability_zone       = "ap-northeast-2a"
 
   tags = {
     Name = "public-subnet"
@@ -24,7 +34,7 @@ resource "aws_subnet" "public_subnet" {
 resource "aws_subnet" "private_subnet" {
   vpc_id            = aws_vpc.main.id
   cidr_block        = "10.0.2.0/24"
-  availability_zone = "ap-east-2a"
+  availability_zone = "ap-northeast-2a"
 
   tags = {
     Name = "private-subnet"
@@ -34,7 +44,7 @@ resource "aws_subnet" "private_subnet" {
 resource "aws_subnet" "private_subnet_b" {
   vpc_id                  = aws_vpc.main.id
   cidr_block              = "10.0.3.0/24"
-  availability_zone       = "ap-east-2b"
+  availability_zone       = "ap-northeast-2b"
   map_public_ip_on_launch = false
   tags = {
     Name = "private-subnet-b"
@@ -118,7 +128,7 @@ resource "aws_security_group" "rds_sg" {
 }
 
 resource "aws_db_subnet_group" "rds_subnet_group" {
-  name       = "rds-subnet-group"
+  name = "rds-subnet-group"
   subnet_ids = [
     aws_subnet.private_subnet.id,
     aws_subnet.private_subnet_b.id
@@ -140,21 +150,21 @@ resource "aws_db_parameter_group" "postgresql_ssl" {
 }
 
 resource "aws_db_instance" "my_rds" {
-  identifier             = "private-rds-instance"
-  allocated_storage      = 20
-  storage_type           = "gp2"
-  engine                 = "postgres"
-  engine_version         = "15.5"
-  instance_class         = "db.t3.micro"
-  username               = "admin"
-  password               = "Str0ngP@ssw0rd!"
-  db_subnet_group_name   = aws_db_subnet_group.rds_subnet_group.name
-  vpc_security_group_ids = [aws_security_group.rds_sg.id]
-  skip_final_snapshot    = true
+  identifier              = "private-rds-instance"
+  allocated_storage       = 20
+  storage_type            = "gp2"
+  engine                  = "postgres"
+  engine_version          = "15.5"
+  instance_class          = "db.t3.micro"
+  username                = "admin"
+  password                = "Str0ngP@ssw0rd!"
+  db_subnet_group_name    = aws_db_subnet_group.rds_subnet_group.name
+  vpc_security_group_ids  = [aws_security_group.rds_sg.id]
+  skip_final_snapshot     = true
   backup_retention_period = 0
-  publicly_accessible    = false
-  multi_az               = false
-  parameter_group_name   = aws_db_parameter_group.postgresql_ssl.name
+  publicly_accessible     = false
+  multi_az                = false
+  parameter_group_name    = aws_db_parameter_group.postgresql_ssl.name
 
   tags = {
     Name = "private-rds"
@@ -188,4 +198,9 @@ output "rds_endpoint" {
 
 output "ec2_public_ip" {
   value = aws_instance.cloudflared_ec2.public_ip
+}
+
+output "api_gateway_url" {
+  description = "The full invoke URL for HTTP API"
+  value       = module.api_gateway.invoke_gateway_url
 }
