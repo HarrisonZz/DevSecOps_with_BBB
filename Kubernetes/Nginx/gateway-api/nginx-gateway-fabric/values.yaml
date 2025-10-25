@@ -597,9 +597,11 @@ nginx:
     # @schema
     # -- A list of NodePorts to expose on the NGINX data plane service. Each NodePort MUST map to a Gateway listener port,
     # otherwise it will be ignored. The default NodePort range enforced by Kubernetes is 30000-32767.
-    nodePorts: []
-    # - port: 30025
-    #   listenerPort: 80
+    nodePorts:
+     - port: 31080
+       listenerPort: 80
+     - port: 31443
+       listenerPort: 443
 
     # -- Custom patches to apply to the NGINX Service.
     patches: []

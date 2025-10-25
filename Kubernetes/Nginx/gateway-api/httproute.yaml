@@ -12,8 +12,30 @@ spec:
     - matches:
         - path:
             type: PathPrefix
-            value: /
+            value: /web
+      filters:
+        # 移除 prefix，讓後端接收到的路徑正確（可選）
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: /
       backendRefs:
         - name: web-app-svc
           port: 8080
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /es
+      filters:
+        # 移除 prefix /es，讓後端接收到的路徑正確（可選）
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: /
+      backendRefs:
+        - name: es-proxy
+          namespace: logging
+          port: 9200
 
