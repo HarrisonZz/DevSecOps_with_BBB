@@ -1,0 +1,46 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: logstash-config
+  namespace: logging
+data:
+  logstash.conf: |
+    input {
+      tcp {
+        port => 5044
+        codec => json_lines
+      }
+    }
+
+    filter {
+      if [level] {
+        mutate {
+          rename => { "level" => "log_level" }
+        }
+      }
+      else if [message] =~ /ERROR/ {
+        mutate { add_field => { "log_level" => "error" } }
+      } else {
+        mutate { add_field => { "log_level" => "info" } }
+      }
+
+      mutate {
+      add_field => {
+          "service" => "bbb-web-server"
+          "source_node" => "${HOSTNAME}"
+        }
+      }
+    }
+
+    output {
+      elasticsearch {
+        hosts => ["https://elasticsearch-master.logging.svc.cluster.local:9200"]
+        user => "${ELASTIC_USER}"
+        password => "${ELASTIC_PASSWORD}"
+        ssl => true
+        cacert => "/usr/share/logstash/config/certs/ca.crt"
+        ssl_certificate_verification => false
+        index => "app-logs-%{+YYYY.MM.dd}"
+      }
+      stdout { codec => rubydebug }
+    }

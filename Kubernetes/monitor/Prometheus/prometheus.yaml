@@ -768,7 +768,7 @@ spec:
             - --path.sysfs=/host/sys
             - --path.rootfs=/host/root
             - --path.udev.data=/host/root/run/udev/data
-            - --web.listen-address=[$(HOST_IP)]:9100
+            - --web.listen-address=$(HOST_IP):9100
             - --collector.disable-defaults
             - --collector.cpu
             - --collector.meminfo
@@ -799,10 +799,10 @@ spec:
               path: /
               port: metrics
               scheme: HTTP
-            initialDelaySeconds: 0
+            initialDelaySeconds: 5
             periodSeconds: 10
             successThreshold: 1
-            timeoutSeconds: 1
+            timeoutSeconds: 5
           readinessProbe:
             failureThreshold: 3
             httpGet:
@@ -810,10 +810,10 @@ spec:
               path: /
               port: metrics
               scheme: HTTP
-            initialDelaySeconds: 0
+            initialDelaySeconds: 5
             periodSeconds: 10
             successThreshold: 1
-            timeoutSeconds: 1
+            timeoutSeconds: 5
           volumeMounts:
             - name: proc
               mountPath: /host/proc

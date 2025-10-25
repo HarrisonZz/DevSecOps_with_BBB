@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: logstash
+  namespace: logging
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: logstash
+  template:
+    metadata:
+      labels:
+        app: logstash
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: node-agent
+      containers:
+      - name: logstash
+        image: docker.elastic.co/logstash/logstash:8.12.0
+        ports:
+          - containerPort: 5044
+        env:
+          - name: XPACK_MONITORING_ENABLED
+            value: "false"
+          - name: XPACK_MONITORING_ELASTICSEARCH_HOSTS
+            value: "[]"
+          - name: HOSTNAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+          - name: ELASTIC_USER
+            valueFrom:
+              secretKeyRef:
+                name: elasticsearch-single-credentials
+                key: username
+          - name: ELASTIC_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: elasticsearch-single-credentials
+                key: password
+          - name: ELASTIC_CA
+            valueFrom:
+              secretKeyRef:
+                name: elasticsearch-single-certs
+                key: ca.crt
+        volumeMounts:
+          - name: logstash-config
+            mountPath: /usr/share/logstash/pipeline/
+          - name: elastic-ca
+            mountPath: /usr/share/logstash/config/certs
+            readOnly: true
+      volumes:
+        - name: logstash-config
+          configMap:
+            name: logstash-config
+        - name: elastic-ca
+          secret:
+            secretName: elasticsearch-ca
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: logstash
+  namespace: logging
+spec:
+  ports:
+    - port: 5044
+      targetPort: 5044
+  selector:
+    app: logstash
+
