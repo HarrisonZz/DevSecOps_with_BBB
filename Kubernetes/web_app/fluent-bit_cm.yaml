@@ -7,16 +7,42 @@ data:
     [SERVICE]
         Flush        5
         Log_Level    info
+        Daemon       off
+        Parsers_File /fluent-bit/etc/parsers.conf
 
     [INPUT]
         Name         tail
         Path         /var/log/app/app.log
-        Tag          app.go
         Refresh_Interval 5
         Skip_Long_Lines On
         DB           /var/fluent-bit/db/flb.db
         DB.Sync      Full
+        Read_From_Head    On
+
+    [FILTER]
+        Name            parser
+        Match           *
+        Key_Name        log
+        Parser          json
+        Reserve_Data    Off
 
     [OUTPUT]
-        Name         stdout
+        Name         tcp
         Match        *
+        Host         logstash.logging.svc.cluster.local
+        Format       json_lines
+        json_date_key    @timestamp
+        json_date_format iso8601
+        Port         5044
+
+    [OUTPUT]
+        Name        stdout
+        Match       *
+        Format      json_lines
+        json_date_key    @timestamp
+        json_date_format iso8601
+
+  parsers.conf: |
+    [PARSER]
+        Name        json
+        Format      json
