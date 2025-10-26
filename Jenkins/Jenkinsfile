@@ -63,6 +63,15 @@ pipeline {
     post {
         failure {
             echo "❌ Build failed. Please check logs."
+            powershell '''
+                Write-Host "Deleting Jenkins workspace: $env:WORKSPACE"
+                if (Test-Path $env:WORKSPACE) {
+                Remove-Item -Recurse -Force -Path $env:WORKSPACE
+                Write-Host "✅ Workspace deleted successfully."
+                } else {
+                Write-Host "⚠️ No workspace found at $env:WORKSPACE"
+                }
+            '''
         }
         success {
             echo "✅ Infrastructure successfully deployed."
