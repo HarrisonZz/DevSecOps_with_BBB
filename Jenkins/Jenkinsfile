@@ -2,7 +2,7 @@ pipeline {
     agent { label 'windows' }
 
     environment {
-        TF_VAR_copy_script = "copy_to_ci.sh"
+        TF_VAR_copy_script = "copy_to_jenkins.sh"
     }
 
     stages {
