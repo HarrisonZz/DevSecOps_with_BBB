@@ -14,7 +14,7 @@ pipeline {
         stage('Init Terraform (on-premises)') {
             steps {
                 dir('Terraform_and_Vagrant/on-premises') {
-                    sh '''
+                    bat '''
                         echo "[INFO] Initialize Terraform..."
                         terraform init -input=false
                     '''
@@ -25,7 +25,7 @@ pipeline {
         stage('Plan Infrastructure') {
             steps {
                 dir('Terraform_and_Vagrant/on-premises') {
-                    sh '''
+                    bat '''
                         echo "[INFO] Terraform Plan"
                         terraform plan -out=tfplan
                     '''
@@ -36,7 +36,7 @@ pipeline {
         stage('Apply Infrastructure') {
             steps {
                 dir('Terraform_and_Vagrant/on-premises') {
-                    sh '''
+                    bat '''
                         echo "[INFO] Applying Terraform..."
                         terraform apply -auto-approve tfplan
                     '''
@@ -47,7 +47,7 @@ pipeline {
         stage('Cleanup') {
             steps {
                 dir('Terraform_and_Vagrant/on-premises') {
-                    sh '''
+                    bat '''
                         echo "[INFO] Cleaning temporary files..."
                         rm -f tfplan
                     '''
