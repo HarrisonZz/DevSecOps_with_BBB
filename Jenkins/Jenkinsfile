@@ -1,6 +1,10 @@
 pipeline {
     agent { label 'windows' }
 
+    environment {
+        TF_VAR_copy_script = "copy_to_ci.sh"
+    }
+
     stages {
 
         stage('Checkout Repo') {
