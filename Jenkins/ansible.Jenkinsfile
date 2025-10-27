@@ -3,7 +3,7 @@ pipeline {
   environment {
     ANSIBLE_CONFIG = "ansible.jenkins.cfg"
     INVENTORY_FILE = 'inventory.ini'
-    PLAYBOOK_FILE  = 'playbooks/sites.yml'
+    PLAYBOOK_FILE  = 'playbooks/site.yml'
   }
 
   agent { label 'wsl' }
