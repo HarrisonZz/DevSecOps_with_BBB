@@ -4,6 +4,7 @@ pipeline {
     ANSIBLE_CONFIG = "ansible.jenkins.cfg"
     INVENTORY_FILE = 'inventory.yml'
     PLAYBOOK_FILE  = 'playbooks/site.yml'
+    KUBECONFIG_FILE = '.kubeconfig'
   }
 
   agent { label 'wsl' }
@@ -47,6 +48,31 @@ pipeline {
         }
       }
     }
+
+    stage('Fetch Kubeconfig') {
+            steps {
+                script {
+                    // 1. 獲取 Jenkins Agent 的 $HOME 絕對路徑
+                    def agentHome = sh(script: 'echo $HOME', returnStdout: true).trim()
+                    def agentKubeconfigPath = "${agentHome}/.kubeconfig"
+                    
+                    env.KUBECONFIG = agentKubeconfigPath
+                    
+                    echo "✅ KUBECONFIG 變數已設定為: ${env.KUBECONFIG}"
+                }
+            }
+    }
+
+    stage('Test kubectl Connection') {
+            steps {
+                // 在此階段，KUBECONFIG 變數將自動可用
+                sh '''
+                    echo "--- Testing kubectl ---"
+                    kubectl get nodes
+                '''
+            }
+    }
+    
   }
 
 
