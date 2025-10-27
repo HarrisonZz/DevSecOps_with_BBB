@@ -16,6 +16,7 @@ pipeline {
           sh '''
             ansible --version || (echo "❌ Ansible not installed" && exit 1)
             ansible-config dump --only-changed || true
+            ansible-galaxy collection install -r requirements.yml
           '''
         }
       }
