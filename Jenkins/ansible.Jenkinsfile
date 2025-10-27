@@ -8,12 +8,23 @@ pipeline {
 
   agent { label 'wsl' }
   stages {
+
+    stage('Checkout Repo') {
+        steps {
+            // 從 GitHub 抓 main branch
+            git branch: 'main', 
+                url: 'https://github.com/HarrisonZz/DevSecOps_with_BBB.git'
+        }
+    }
+
     stage('Verify Environment') {
       steps {
-        echo "Verifying Ansible installation..."
-        sh '''
-          ansible --version || (echo "Ansible not installed" && exit 1)
-        '''
+        dir('Ansible') {
+            echo "Verifying Ansible installation..."
+            sh '''
+            ansible --version || (echo "Ansible not installed" && exit 1)
+            '''
+        }
       }
     }
 
