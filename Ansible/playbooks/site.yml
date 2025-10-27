@@ -366,10 +366,11 @@
       command: ip addr flush dev usb0
       ignore_errors: yes
 
-    - name: Apply usb0 config cleanly
+    - name: Apply usb0 config and bring it up cleanly (Idempotent)
       become: yes
-      ansible.builtin.network_connections:
-        name: usb0
+      # Changed from ansible.builtin.network_connections
+      community.general.nmcli:
+        conn_name: usb0
         state: up
 
     - name: Add default route via BBB gateway (idempotent)
