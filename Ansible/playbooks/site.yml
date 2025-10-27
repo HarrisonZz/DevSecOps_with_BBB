@@ -326,9 +326,6 @@
     chrony_conf_path: /etc/chrony/chrony.conf
     server_host: "{{ groups['k3s_server'][0] }}"
     node_token_decoded: "{{ hostvars[server_host].k3s_node_token | b64decode | trim }}"
-    iface_name: eth0
-    static_ip: 192.168.100.10
-    netmask: 255.255.255.0
     
   handlers:
     - name: Restart networking
@@ -338,46 +335,57 @@
         state: restarted
   tasks:
      # ====== BBB 專屬網路設定 ======
-    - name: Configure static IP for eth0
-      become: yes
-      ansible.builtin.shell: |
-        ip addr show eth0 | grep -q "192.168.100.10" || ip addr add 192.168.100.10/24 dev eth0
-        ip link set eth0 up
-
-    - name: Configure usb0 with static IP and DNS
+    - name: Configure static IP for eth0 (persistent via systemd)
       become: yes
       copy:
-        dest: /etc/network/interfaces.d/usb0
+        dest: /etc/systemd/network/eth0.network
+        mode: '0644'
         content: |
-          auto usb0
-          iface usb0 inet static
-            address 192.168.137.10
-            netmask 255.255.255.0
-            gateway 192.168.137.1
-            dns-nameservers 8.8.8.8 1.1.1.1
+          [Match]
+          Name=eth0
 
-    - name: Force usb0 down
+          [Network]
+          Address=192.168.100.10/24
+
+    - name: Configure usb0 via systemd-networkd
       become: yes
-      command: ip link set usb0 down
-      ignore_errors: yes
+      block:
+        - name: Ensure systemd-networkd is installed and enabled
+          package:
+            name: systemd
+            state: present
 
-    - name: Flush usb0 addresses
-      become: yes
-      command: ip addr flush dev usb0
-      ignore_errors: yes
+        - name: Deploy usb0 network configuration
+          copy:
+            dest: /etc/systemd/network/usb0.network
+            owner: root
+            group: root
+            mode: '0644'
+            content: |
+              [Match]
+              Name=usb0
 
-    - name: Check if usb0 is currently configured/up
-      command: ip -o link show dev usb0
-      register: usb0_status
-      failed_when: usb0_status.rc not in [0, 1]
-      changed_when: false
+              [Network]
+              Address=192.168.137.2/24
+              Gateway=192.168.137.1
+              DNS=8.8.8.8
+              GatewayOnLink=yes
 
-    - name: Apply usb0 config via ifup (if not already up)
-      become: yes
-      ansible.builtin.command: ifup usb0
-      # Only run if 'inet' (address) is not found in the output, indicating it needs config
-      when:
-        - "'state UP' not in usb0_status.stdout"
+        - name: Enable and restart systemd-networkd
+          systemd:
+            name: systemd-networkd
+            enabled: true
+            state: restarted
+        
+        - name: Verify usb0 status
+          command: networkctl status usb0
+          register: usb0_status
+          changed_when: false
+        
+        - name: Show usb0 status
+          debug:
+            msg: "{{ usb0_status.stdout }}"
+        
 
     - name: Add default route via BBB gateway (idempotent)
       ansible.builtin.command: ip route add default via {{ bbb_default_gw }}
