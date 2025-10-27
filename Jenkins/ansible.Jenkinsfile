@@ -2,7 +2,7 @@ pipeline {
 
   environment {
     ANSIBLE_CONFIG = "ansible.jenkins.cfg"
-    INVENTORY_FILE = 'inventory.ini'
+    INVENTORY_FILE = 'inventory.yml'
     PLAYBOOK_FILE  = 'playbooks/site.yml'
   }
 
