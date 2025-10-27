@@ -365,6 +365,13 @@
       become: yes
       command: ip addr flush dev usb0
       ignore_errors: yes
+    
+    - name: Install NetworkManager and its dependencies
+      become: yes
+      # Use the package manager relevant to your BBB distribution (e.g., apt for Debian/Ubuntu)
+      ansible.builtin.package:
+        name: network-manager
+        state: present
 
     - name: Apply usb0 config and bring it up cleanly (Idempotent)
       become: yes
