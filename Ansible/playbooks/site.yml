@@ -365,20 +365,20 @@
       become: yes
       command: ip addr flush dev usb0
       ignore_errors: yes
-    
-    - name: Install NetworkManager and its dependencies
-      become: yes
-      # Use the package manager relevant to your BBB distribution (e.g., apt for Debian/Ubuntu)
-      ansible.builtin.package:
-        name: network-manager
-        state: present
 
-    - name: Apply usb0 config and bring it up cleanly (Idempotent)
+    - name: Check if usb0 is currently configured/up
+      # This command is fast and checks the link status
+      ansible.builtin.command: ip addr show dev usb0
+      register: usb0_status
+      # Set failed_when to tolerate the device not being found (rc=1)
+      failed_when: usb0_status.rc not in [0, 1]
+      changed_when: false
+
+    - name: Apply usb0 config via ifup (if not already up)
       become: yes
-      # Changed from ansible.builtin.network_connections
-      community.general.nmcli:
-        conn_name: usb0
-        state: up
+      ansible.builtin.command: ifup usb0
+      # Only run if 'inet' (address) is not found in the output, indicating it needs config
+      when: "'inet ' not in usb0_status.stdout"
 
     - name: Add default route via BBB gateway (idempotent)
       ansible.builtin.command: ip route add default via {{ bbb_default_gw }}
