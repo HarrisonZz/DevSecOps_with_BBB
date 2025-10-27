@@ -12,7 +12,7 @@ pipeline {
       steps {
         echo "Verifying Ansible installation..."
         sh '''
-          ${ANSIBLE_CMD} --version || (echo "Ansible not installed" && exit 1)
+          ansible --version || (echo "Ansible not installed" && exit 1)
         '''
       }
     }
