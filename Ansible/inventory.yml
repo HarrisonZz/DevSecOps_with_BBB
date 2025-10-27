@@ -1,0 +1,48 @@
+all:
+  vars:
+    timezone: "Asia/Taipei"
+    chrony_time_sources:
+      - "time.google.com"
+    k3s_server_ip: "192.168.100.20"
+    k3s_server_url: "https://{{ k3s_server_ip }}:6443"
+    cluster_cidr: "10.42.0.0/16"
+    service_cidr: "10.43.0.0/16"
+    cluster_dns: "10.43.0.10"
+    node_vm_ip: "192.168.100.21"
+    node_vm_name: "node-agent"
+    bbb_node_ip: "192.168.100.10"
+    bbb_default_gw: "192.168.137.1"
+    bbb_usb_iface: "usb0"
+    bbb_eth_iface: "eth0"
+
+  children:
+    local:
+      hosts:
+        localhost:
+          ansible_connection: local
+          ansible_user: ""
+
+    k3s_server:
+      hosts:
+        controlplane:
+          ansible_host: "k3s-controlplane"
+          ansible_user: "vagrant"
+          ansible_become: yes
+
+    k3s_agent:
+      hosts:
+        node-vm:
+          ansible_host: "k3s-agent"
+          ansible_user: "vagrant"
+          ansible_become: yes
+
+    k3s_agents_bbb:
+      hosts:
+        node-bbb:
+          ansible_host: "192.168.6.2"
+          ansible_user: "debian"
+          ansible_become: yes
+      vars:
+        ansible_password: "{{ ansible_password }}"
+        ansible_become_method: sudo
+        ansible_become_password: "{{ ansible_password }}"

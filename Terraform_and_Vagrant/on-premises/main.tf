@@ -5,7 +5,7 @@ locals {
 
 resource "null_resource" "vagrant_up" {
   provisioner "local-exec" {
-    command     = "vagrant up"
+    command     = "powershell -Command \"Start-Process vagrant -ArgumentList 'up' -NoNewWindow -Wait\""
     working_dir = path.module
   }
 
