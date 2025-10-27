@@ -173,18 +173,28 @@
         content: "{{ kubeconfig_raw.content | b64decode | regex_replace('127\\.0\\.0\\.1', k3s_server_ip) }}"
         dest: "{{ ansible_env.HOME }}/.kubeconfig"
     
-    - name: Ensure export KUBECONFIG line exists in ~/.bashrc
+    # 任務 2: 覆蓋/移除所有舊的 KUBECONFIG 導出設定
+    - name: Ensure existing KUBECONFIG export is removed
       lineinfile:
-        path: "{{ lookup('env','HOME') }}/.bashrc"
-        line: 'export KUBECONFIG=~/.kubeconfig'
+        path: "{{ ansible_env.HOME }}/.bashrc"
+        # 使用正規表達式匹配所有以 'export KUBECONFIG=' 開頭的行
+        regexp: '^export KUBECONFIG=.*' 
+        state: absent # 確保這些匹配到的行被移除
+        create: yes # 如果 .bashrc 不存在，則建立它
+
+    # 任務 3: 插入新的 KUBECONFIG 環境變數定義到 ~/.bashrc 檔案末尾
+    - name: Add/Overwrite KUBECONFIG environment variable in ~/.bashrc
+      lineinfile:
+        path: "{{ ansible_env.HOME }}/.bashrc"
+        line: 'export KUBECONFIG={{ ansible_env.HOME }}/.kubeconfig' # 建議使用絕對路徑變數更清晰
         insertafter: EOF
         state: present
+        create: yes # 如果 .bashrc 不存在，則建立它
     
     - name: Source bashrc to make KUBECONFIG effective immediately
       shell: source ~/.bashrc
       args:
         executable: /bin/bash
-
 
 #------------------------
 
