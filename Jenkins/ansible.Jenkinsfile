@@ -20,19 +20,6 @@ pipeline {
       }
     }
 
-    stage('Test Connection') {
-      steps {
-        dir('Ansible') {
-          echo "🔗 Testing inventory connectivity..."
-          sh '''
-            echo "Current directory: $(pwd)"
-            ls -l
-            ansible -i ${INVENTORY_FILE} all -m ping
-          '''
-        }
-      }
-    }
-
     stage('Syntax Check (Optional)') {
       steps {
         dir('Ansible') {
