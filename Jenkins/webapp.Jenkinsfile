@@ -42,11 +42,10 @@ pipeline {
 
         stage('Build & Push Image') {
             steps {
-                dir('web_server_in_go') {
-                    sh '''
-                        ./build_bbb.sh image
-                    '''
-                }
+                
+                sh '''
+                    ./go_build.sh image
+                '''
             }
         }
     }
