@@ -367,10 +367,8 @@
       ignore_errors: yes
 
     - name: Check if usb0 is currently configured/up
-      # This command is fast and checks the link status
-      ansible.builtin.command: ip addr show dev usb0
+      command: ip -o link show dev usb0
       register: usb0_status
-      # Set failed_when to tolerate the device not being found (rc=1)
       failed_when: usb0_status.rc not in [0, 1]
       changed_when: false
 
@@ -378,7 +376,8 @@
       become: yes
       ansible.builtin.command: ifup usb0
       # Only run if 'inet' (address) is not found in the output, indicating it needs config
-      when: "'inet ' not in usb0_status.stdout"
+      when:
+        - "'state UP' not in usb0_status.stdout"
 
     - name: Add default route via BBB gateway (idempotent)
       ansible.builtin.command: ip route add default via {{ bbb_default_gw }}
