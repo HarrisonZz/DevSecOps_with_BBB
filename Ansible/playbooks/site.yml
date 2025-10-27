@@ -366,13 +366,11 @@
       command: ip addr flush dev usb0
       ignore_errors: yes
 
-    - name: Bring usb0 up manually (skip ifup)
+    - name: Apply usb0 config cleanly
       become: yes
-      command: ip link set usb0 up
-
-    - name: Apply usb0 config via ifup
-      become: yes
-      command: ifup --force usb0
+      ansible.builtin.network_connections:
+        name: usb0
+        state: up
 
     - name: Add default route via BBB gateway (idempotent)
       ansible.builtin.command: ip route add default via {{ bbb_default_gw }}
