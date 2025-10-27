@@ -2,6 +2,7 @@ pipeline {
     agent { label 'windows' }
 
     environment {
+        JENKINS_NODE_COOKIE = 'dontKillMe'
         TF_VAR_copy_script = "copy_to_jenkins.sh"
     }
 
