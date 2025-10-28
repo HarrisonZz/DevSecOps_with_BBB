@@ -14,6 +14,7 @@ spec:
       labels:
         app: web-app
     spec:
+      progressDeadlineSeconds: 150
       serviceAccountName: node-inspector
       nodeSelector:
         task: application

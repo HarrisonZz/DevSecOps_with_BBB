@@ -39,7 +39,7 @@ pipeline {
                 kubectl apply -f web_app/role/
                 kubectl apply -f web_app/fluent-bit_cm.yaml
                 kubectl apply -f redis/secret.yaml
-                
+
                 '''
             }
         }
@@ -61,4 +61,24 @@ pipeline {
       }
     }
   }
+
+  post {
+        success {
+            echo "✅ Test passed, cleaning up resources..."
+        }
+
+        failure {
+            echo "❌ Test failed, printing diagnostics before cleanup..."
+        }
+
+        always {
+            echo "[*] Post stage completed — cluster state after cleanup:"
+            sh '''
+            kubectl delete -f Kubernetes/web_app/ --ignore-not-found=true -n default
+            kubectl delete -f Kubernetes/web_app/role/ --ignore-not-found=true -n default
+
+            kubectl delete -f Kubernetes/redis/ --ignore-not-found=true -n default
+            '''
+        }
+    }
 }
