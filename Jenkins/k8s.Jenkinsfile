@@ -75,7 +75,7 @@ pipeline {
             helm install ngf Nginx/gateway-api/nginx-gateway-fabric -n nginx-gateway --create-namespace
             
             echo "[*] Waiting for NGINX Gateway controller startup..."
-            kubectl rollout status deploy/nginx-gateway -n nginx-gateway --timeout=120s
+            kubectl rollout status deploy/ngf -n nginx-gateway --timeout=120s
 
             kubectl apply -f Nginx/gateway-api/gateway.yaml
             kubectl apply -f Nginx/gateway-api/httproute.yaml
@@ -114,9 +114,9 @@ pipeline {
 
             kubectl delete -f Kubernetes/redis/ --ignore-not-found=true
 
-            kubectl delete -f Nginx/gateway-api/httproute.yaml
-            kubectl delete -f Nginx/gateway-api/gateway.yaml
-            helm uninstall ngf -n nginx-gateway --create-namespace
+            kubectl delete -f Nginx/gateway-api/httproute.yaml --ignore-not-found=true
+            kubectl delete -f Nginx/gateway-api/gateway.yaml --ignore-not-found=true
+            helm uninstall ngf -n nginx-gateway
             kubectl delete -f Nginx/gateway-api/standard-install.yaml
             
             '''
