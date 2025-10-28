@@ -139,11 +139,11 @@ pipeline {
             kubectl delete secrets web-tls --ignore-not-found=true
             
             '''
+            //deleteDir()
         }
 
         always {
             echo "[*] Post stage completed — cluster state after cleanup:"
-            deleteDir()
         }
     }
 }
