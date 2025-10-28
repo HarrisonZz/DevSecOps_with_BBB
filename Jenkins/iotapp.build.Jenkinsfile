@@ -43,6 +43,7 @@ pipeline {
                     playbook_build.yml \
                     --extra-vars "@vault.yml" \
                     --vault-password-file /tmp/vault_pass.txt
+              ansible -i inventory.yml bbb_iot -m systemd -a "name=bbb_iot_app state=status"
             '''
           }
         }

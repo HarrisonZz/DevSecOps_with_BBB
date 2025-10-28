@@ -59,3 +59,17 @@
       stat:
         path: "{{ binary_path }}"
       register: binary_check
+    
+    - name: Copy systemd service file
+      copy:
+        src: "{{ playbook_dir }}/templates/bbb_iot_app.service"
+        dest: /etc/systemd/system/bbb_iot_app.service
+        mode: '0644'
+      become: yes
+
+    - name: Enable and start IoT service
+      systemd:
+        name: bbb_iot_app
+        enabled: yes
+        state: restarted
+      become: yes

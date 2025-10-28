@@ -1,0 +1,19 @@
+[Unit]
+Description=BBB IoT MQTT Client
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=debian
+WorkingDirectory=/home/debian/app
+ExecStart=/home/debian/BeagleBoneBlack_IoT/build/bin/mqtt_mutual
+Restart=no
+
+# 設定安全性與限制
+ProtectSystem=full
+ProtectHome=yes
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target
