@@ -42,7 +42,9 @@ pipeline {
 
                 # Nginx Gateway API
                 kubectl apply -f Nginx/certs_for_test/tls_secret.yaml
-
+                
+                # ELK Stack
+                kubectl apply -f monitor/ELK/logstash_configmap.yaml
                 '''
             }
         }
@@ -105,6 +107,35 @@ pipeline {
         }
       }
     }
+
+    stage('Deploy ELK Stack to K3S') {
+      steps {
+        dir('Kubernetes/monitor') {
+            sh '''
+
+            kubectl label nodes node-agent task=monitor
+            echo "[*] Applying ELK Stack manifests..."
+
+            echo "[*] Waiting for ElasticSearch startup..."
+            kubectl apply -f ELK/es.yaml
+            kubectl rollout status statefulset/elasticsearch-single -n logging --timeout=600s
+            kubectl apply -f ../Nginx/gateway-api/es-proxy.yaml
+            kubectl apply -f ../Nginx/gateway-api/referenceGrant.yaml
+
+            echo "[*] Waiting for LogStash startup..."
+            kubectl apply -f ELK/logstash.yaml
+            kubectl rollout status deploy/logstash -n logging --timeout=600s
+
+            echo "[*] Waiting for Kibana startup..."
+            helm install kibana ./ELK/kibana -n logging -f values/kibana-values.yaml
+            kubectl rollout status deploy/kibana -n logging --timeout=600s
+
+    
+            '''
+        }
+      }
+    }
+
   }
 
   post {
@@ -126,11 +157,20 @@ pipeline {
             kubectl delete -f Kubernetes/monitor/Grafana/grafana.yaml --ignore-not-found=true
             kubectl delete -f Kubernetes/monitor/Prometheus/prometheus.yaml --ignore-not-found=true
 
+            # ELK Stack
+            helm uninstall kibana -n logging
+            kubectl delete -f Kubernetes/monitor/ELK/logstash.yaml --ignore-not-found=true
+            kubectl delete -f Kubernetes/monitor/ELK/es.yaml --ignore-not-found=true
+            kubectl delete -f Kubernetes/Nginx/gateway-api/es-proxy.yaml --ignore-not-found=true
+            kubectl delete -f Kubernetes/Nginx/gateway-api/referenceGrant.yaml --ignore-not-found=true
+            kubectl label nodes node-agent task-
+
             # Config
             kubectl delete -f Kubernetes/web_app/role/ --ignore-not-found=true
             kubectl delete -f Kubernetes/web_app/fluent-bit_cm.yaml --ignore-not-found=true
             kubectl delete -f Kubernetes/redis/secret.yaml --ignore-not-found=true
             kubectl delete secrets web-tls --ignore-not-found=true
+            kubectl delete -f Kubernetes/monitor/ELK/logstash_configmap.yaml
 
              # Gateway API
             kubectl delete -f Kubernetes/Nginx/gateway-api/httproute.yaml --ignore-not-found=true
