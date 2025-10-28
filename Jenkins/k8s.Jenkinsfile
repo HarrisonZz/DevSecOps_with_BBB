@@ -41,7 +41,7 @@ pipeline {
                 kubectl apply -f redis/secret.yaml
 
                 # Nginx Gateway API
-                # kubectl apply -f Nginx/certs_for_test/tls_secret.yaml
+                kubectl apply -f Nginx/certs_for_test/tls_secret.yaml
 
                 '''
             }
@@ -93,12 +93,12 @@ pipeline {
             echo "[*] Applying Prometheus and Grafana manifests..."
 
             kubectl apply -f Prometheus/prometheus.yaml
-            kubectl rollout status deploy/prometheus-server -n monitoring --timeout=120s
-            kubectl rollout status daemonset/prometheus-prometheus-node-exporter -n monitoring --timeout=120s
+            kubectl rollout status deploy/prometheus-server -n monitoring --timeout=600s
+            kubectl rollout status daemonset/prometheus-prometheus-node-exporter -n monitoring --timeout=600s
             
             echo "[*] Waiting for Grafana startup..."
             kubectl apply -f Grafana/grafana.yaml
-            kubectl rollout status deploy/grafana -n monitoring --timeout=120s
+            kubectl rollout status deploy/grafana -n monitoring --timeout=600s
 
     
             '''
@@ -129,8 +129,8 @@ pipeline {
             kubectl delete -f Kubernetes/Nginx/gateway-api/standard-install.yaml
 
             # Prometheus & Grafana
-            kubectl delete -f Kubernetes/monitor/Grafana/grafana.yaml
-            kubectl delete -f Kubernetes/monitor/Prometheus/prometheus.yaml
+            kubectl delete -f Kubernetes/monitor/Grafana/grafana.yaml --ignore-not-found=true
+            kubectl delete -f Kubernetes/monitor/Prometheus/prometheus.yaml --ignore-not-found=true
 
             # Config
             kubectl delete -f Kubernetes/web_app/role/ --ignore-not-found=true
