@@ -117,16 +117,16 @@ pipeline {
             kubectl delete -f Kubernetes/redis/ --ignore-not-found=true
             
             # Gateway API
-            kubectl delete -f Nginx/gateway-api/httproute.yaml --ignore-not-found=true
-            kubectl delete -f Nginx/gateway-api/gateway.yaml --ignore-not-found=true
+            kubectl delete -f Kubernetes/Nginx/gateway-api/httproute.yaml --ignore-not-found=true
+            kubectl delete -f Kubernetes/Nginx/gateway-api/gateway.yaml --ignore-not-found=true
             helm uninstall ngf -n nginx-gateway
-            kubectl delete -f Nginx/gateway-api/standard-install.yaml
+            kubectl delete -f Kubernetes/Nginx/gateway-api/standard-install.yaml
 
             # Config
-            kubectl delete -f web_app/role/
-            kubectl delete -f web_app/fluent-bit_cm.yaml
-            kubectl delete -f redis/secret.yaml
-            kubectl delete -f Nginx/certs_for_test/tls_secret.yaml
+            kubectl delete -f Kubernetes/web_app/role/ --ignore-not-found=true
+            kubectl delete -f Kubernetes/web_app/fluent-bit_cm.yaml --ignore-not-found=true
+            kubectl delete -f Kubernetes/redis/secret.yaml --ignore-not-found=true
+            kubectl delete -f Kubernetes/Nginx/certs_for_test/tls_secret.yaml --ignore-not-found=true
             
             '''
         }
