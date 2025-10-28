@@ -43,8 +43,6 @@ pipeline {
                 # Nginx Gateway API
                 kubectl apply -f Nginx/certs_for_test/tls_secret.yaml
                 
-                # ELK Stack
-                kubectl apply -f monitor/ELK/logstash_configmap.yaml
                 '''
             }
         }
@@ -123,6 +121,7 @@ pipeline {
             kubectl apply -f ../Nginx/gateway-api/referenceGrant.yaml
 
             echo "[*] Waiting for LogStash startup..."
+            kubectl apply -f ELK/logstash_configmap.yaml
             kubectl apply -f ELK/logstash.yaml
             kubectl rollout status deploy/logstash -n logging --timeout=600s
 
