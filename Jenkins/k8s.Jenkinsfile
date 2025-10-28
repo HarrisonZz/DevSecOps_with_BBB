@@ -238,7 +238,7 @@ pipeline {
 
             echo "[*] Waiting for Kibana startup..."
             helm install kibana ./ELK/kibana -n logging -f ./ELK/values/kibana-values.yaml
-            kubectl rollout status deploy/kibana -n logging --timeout=600s
+            kubectl rollout status deploy/kibana-kibana -n logging --timeout=600s
 
     
             '''
