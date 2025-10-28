@@ -34,7 +34,7 @@ pipeline {
     stage('Apply Configs') {        // Secret / ConfigMap / Namespace
         steps {
             dir('Kubernetes') {
-                kubectl apply -f web_app/role
+                kubectl apply -f web_app/role/
                 kubectl apply -f web_app/fluent-bit_cm.yaml
                 kubectl apply -f redis/secret.yaml
             }
