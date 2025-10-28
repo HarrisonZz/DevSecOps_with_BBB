@@ -19,7 +19,7 @@ def Clean(String stageName) {
             kubectl delete -f Kubernetes/monitor/ELK/logstash.yaml --ignore-not-found=true
             kubectl delete -f Kubernetes/monitor/ELK/logstash_configmap.yaml --ignore-not-found=true
             kubectl delete -f Kubernetes/monitor/ELK/es.yaml --ignore-not-found=true
-            kubectl delete -f Kubernetes/monitor/ELK/test-es-health.yaml --ignore-not-found=true
+            kubectl delete -f Kubernetes/monitor/ELK/test-elasticsearch-health.yaml --ignore-not-found=true
             kubectl delete -f Kubernetes/Nginx/gateway-api/es-proxy.yaml --ignore-not-found=true
             kubectl delete -f Kubernetes/Nginx/gateway-api/referenceGrant.yaml --ignore-not-found=true
             helm uninstall kibana -n logging || true
@@ -227,6 +227,7 @@ pipeline {
             echo "[*] Waiting for ElasticSearch startup..."
             kubectl apply -f ELK/es.yaml
             kubectl rollout status statefulset/elasticsearch-single -n logging --timeout=600s
+            kubectl apply -f ELK/test-elasticsearch-health.yaml
             kubectl apply -f ../Nginx/gateway-api/es-proxy.yaml
             kubectl apply -f ../Nginx/gateway-api/referenceGrant.yaml
 
