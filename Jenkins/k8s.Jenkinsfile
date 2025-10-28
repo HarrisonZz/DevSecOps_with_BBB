@@ -41,6 +41,7 @@ pipeline {
                 kubectl apply -f redis/secret.yaml
 
                 # Nginx Gateway API
+                kubectl get secret tls-secret -n nginx-gateway >/dev/null 2>&1 || \
                 kubectl apply -f Nginx/certs_for_test/tls_secret.yaml
 
                 '''
@@ -84,6 +85,27 @@ pipeline {
         }
       }
     }
+
+    stage('Deploy Prometheus and Grafana to K3S') {
+      steps {
+        dir('Kubernetes/monitor') {
+            sh '''
+
+            echo "[*] Applying Prometheus and Grafana manifests..."
+
+            kubectl apply -f Prometheus/prometheus.yaml
+            kubectl rollout status deploy/prometheus-server -n monitoring --timeout=120s
+            kubectl rollout status daemonset/prometheus-prometheus-node-exporter -n monitoring --timeout=120s
+            
+            echo "[*] Waiting for Grafana startup..."
+            kubectl apply -f Grafana/grafana.yaml
+            kubectl rollout status deploy/grafana -n monitoring --timeout=120s
+
+    
+            '''
+        }
+      }
+    }
   }
 
   post {
@@ -106,6 +128,10 @@ pipeline {
             kubectl delete -f Kubernetes/Nginx/gateway-api/gateway.yaml --ignore-not-found=true
             helm uninstall ngf -n nginx-gateway
             kubectl delete -f Kubernetes/Nginx/gateway-api/standard-install.yaml
+
+            # Prometheus & Grafana
+            kubectl delete -f Kubernetes/monitor/Grafana/grafana.yaml
+            kubectl delete -f Kubernetes/monitor/Prometheus/prometheus.yaml
 
             # Config
             kubectl delete -f Kubernetes/web_app/role/ --ignore-not-found=true
