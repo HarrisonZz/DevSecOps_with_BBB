@@ -1,6 +1,10 @@
 pipeline {
   agent { label 'wsl' }
 
+  environment {
+        KUBECONFIG = '/var/lib/jenkins/.kube/config'
+    }
+
   stages {
     stage('Checkout Repository') {
       steps {
@@ -13,8 +17,6 @@ pipeline {
         steps {
             dir('Kubernetes/web_app') {
                 sh '''
-                export KUBECONFIG=/var/lib/jenkins/.kube/config
-
                 echo "[*] Verifying all nodes are Ready..."
 
                 NOT_READY=$(kubectl get nodes --no-headers | grep -v " Ready " || true)
