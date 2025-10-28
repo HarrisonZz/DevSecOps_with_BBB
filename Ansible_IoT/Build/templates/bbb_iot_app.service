@@ -7,7 +7,7 @@ Wants=network-online.target
 Type=simple
 User=debian
 WorkingDirectory=/home/debian/BeagleBoneBlack_IoT
-ExecStart=/bin/bash -c 'build/bin/mqtt_mutual'
+ExecStart=/bin/bash -c '/home/debian/BeagleBoneBlack_IoT/build/bin/mqtt_mutual'
 Restart=no
 ProtectHome=no
 Environment="PATH=/usr/local/bin:/usr/bin:/bin"
