@@ -2,7 +2,7 @@ pipeline {
   agent { label 'wsl' }
 
   environment {
-        KUBECONFIG = '/var/lib/jenkins/.kube/config'
+        KUBECONFIG = '/var/lib/jenkins/.kubeconfig'
     }
 
   stages {
