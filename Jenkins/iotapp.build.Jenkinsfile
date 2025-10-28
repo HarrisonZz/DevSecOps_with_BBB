@@ -31,7 +31,7 @@ pipeline {
 
     stage('Run Playbook (Vault Enabled)') {
       steps {
-        dir('Ansible') {
+        dir('Ansible_IoT/Build') {
           echo "🚀 Running Ansible playbook with Vault decryption..."
           withCredentials([string(credentialsId: 'vault_pass', variable: 'VAULT_PASS')]) {
             sh '''
