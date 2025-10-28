@@ -81,16 +81,15 @@ pipeline {
             kubectl apply -f Nginx/gateway-api/httproute.yaml
 
             for i in {1..30}; do
-                TYPES=$(kubectl get httproute web-route -n default -o jsonpath='{range .status.parents[0].conditions[*]}{.type}{"\\n"}{end}')
-                if echo "$TYPES" | grep -q '^Accepted$'; then
+                STATUS=$(kubectl get httproute web-route -n default -o jsonpath='{range .status.parents[0].conditions[?(@.type=="Accepted")]}{@.status}{end}')
+                if [ "$STATUS" = "True" ]; then
                     echo "✅ Found Type=Accepted in HTTPRoute conditions."
-                    TYPES="Accepted"
                     break
                 fi
                 sleep 2
             done
 
-            if [ "$TYPES" != "Accepted" ]; then
+            if [ "$STATUS" != "True" ]; then
                 echo "❌ HTTPRoute not accepted!"
                 kubectl describe httproute web-route -n default
                 exit 1
@@ -118,16 +117,16 @@ pipeline {
             kubectl delete -f Kubernetes/redis/ --ignore-not-found=true
             
             # Gateway API
-            # kubectl delete -f Kubernetes/Nginx/gateway-api/httproute.yaml --ignore-not-found=true
-            # kubectl delete -f Kubernetes/Nginx/gateway-api/gateway.yaml --ignore-not-found=true
-            # helm uninstall ngf -n nginx-gateway
-            # kubectl delete -f Kubernetes/Nginx/gateway-api/standard-install.yaml
+            kubectl delete -f Kubernetes/Nginx/gateway-api/httproute.yaml --ignore-not-found=true
+            kubectl delete -f Kubernetes/Nginx/gateway-api/gateway.yaml --ignore-not-found=true
+            helm uninstall ngf -n nginx-gateway
+            kubectl delete -f Kubernetes/Nginx/gateway-api/standard-install.yaml
 
             # Config
             kubectl delete -f Kubernetes/web_app/role/ --ignore-not-found=true
             kubectl delete -f Kubernetes/web_app/fluent-bit_cm.yaml --ignore-not-found=true
             kubectl delete -f Kubernetes/redis/secret.yaml --ignore-not-found=true
-            # kubectl delete secrets web-tls --ignore-not-found=true
+            kubectl delete secrets web-tls --ignore-not-found=true
             
             '''
         }
