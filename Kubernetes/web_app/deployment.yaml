@@ -6,6 +6,7 @@ metadata:
     app: web-app
 spec:
   replicas: 1
+  progressDeadlineSeconds: 200
   selector:
     matchLabels:
       app: web-app
@@ -14,7 +15,6 @@ spec:
       labels:
         app: web-app
     spec:
-      progressDeadlineSeconds: 150
       serviceAccountName: node-inspector
       nodeSelector:
         task: application

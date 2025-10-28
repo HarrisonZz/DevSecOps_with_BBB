@@ -74,10 +74,10 @@ pipeline {
         always {
             echo "[*] Post stage completed — cluster state after cleanup:"
             sh '''
-            kubectl delete -f Kubernetes/web_app/ --ignore-not-found=true -n default
-            kubectl delete -f Kubernetes/web_app/role/ --ignore-not-found=true -n default
+            kubectl delete -f Kubernetes/web_app/ --ignore-not-found=true
+            kubectl delete -f Kubernetes/web_app/role/ --ignore-not-found=true
 
-            kubectl delete -f Kubernetes/redis/ --ignore-not-found=true -n default
+            kubectl delete -f Kubernetes/redis/ --ignore-not-found=true
             '''
         }
     }
