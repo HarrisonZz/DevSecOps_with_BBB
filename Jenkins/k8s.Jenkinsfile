@@ -31,15 +31,25 @@ pipeline {
         }
     }
 
+    stage('Apply Configs') {        // Secret / ConfigMap / Namespace
+        steps {
+            dir('Kubernetes') {
+                kubectl apply -f web_app/role
+                kubectl apply -f web_app/fluent-bit_cm.yaml
+                kubectl apply -f redis/secret.yaml
+            }
+        }
+    }
+
     stage('Deploy Web App to K3S') {
       steps {
-        dir('Kubernetes/web_app') {
+        dir('Kubernetes') {
             sh '''
 
             echo "[*] Applying manifests..."
 
-            kubectl apply -f role/
-            kubectl apply -f .
+            kubectl apply -f redis/
+            kubectl apply -f web_app/
 
             kubectl rollout status deployment/web-app -n default --timeout=120s
             '''
