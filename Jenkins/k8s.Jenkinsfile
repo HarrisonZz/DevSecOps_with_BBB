@@ -1,17 +1,14 @@
 def Clean(String stageName) {
     echo "🧹 [Clean] Starting cleanup from stage: ${stageName}"
 
-    // 階段清理順序（由前至後）
     def stages = ['ELKStack', 'Prometheus&Grafana', 'GatewayAPI', 'WebApp', 'Config']
 
-    // 找出目前階段在順序陣列中的索引
     def index = stages.indexOf(stageName)
     if (index == -1) {
         echo "⚠️ Unknown stage name: ${stageName}, skip cleanup."
         return
     }
 
-    // 從當前階段開始一路清理到底
     for (int i = index; i < stages.size(); i++) {
         def current = stages[i]
         echo "🧹 [Clean] Cleaning resources for: ${current}"
@@ -237,10 +234,9 @@ pipeline {
             kubectl apply -f ELK/logstash_configmap.yaml
             kubectl apply -f ELK/logstash.yaml
             kubectl rollout status deploy/logstash -n logging --timeout=600s
-            kubectl apply -f Kubernetes/monitor/ELK/test-es-health.yaml
 
             echo "[*] Waiting for Kibana startup..."
-            helm install kibana ./ELK/kibana -n logging -f values/kibana-values.yaml
+            helm install kibana ./ELK/kibana -n logging -f ./ELK/values/kibana-values.yaml
             kubectl rollout status deploy/kibana -n logging --timeout=600s
 
     
@@ -264,6 +260,7 @@ pipeline {
   post {
         success {
             echo "✅ Test passed, cleaning up resources..."
+            deleteDir()
         }
 
         failure {
