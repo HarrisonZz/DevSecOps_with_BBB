@@ -86,7 +86,7 @@ pipeline {
                     echo "✅ Found Type=Accepted in HTTPRoute conditions."
                     break
                 fi
-                sleep 2
+                sleep 5
             done
 
             if [ "$STATUS" != "True" ]; then
