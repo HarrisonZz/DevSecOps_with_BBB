@@ -29,22 +29,25 @@ pipeline {
       }
     }
 
-    stage('Deploy and Build on BBB') {
+    stage('Run Playbook (Vault Enabled)') {
       steps {
-        dir('Ansible_IoT/Build') {
-            echo "[*] Running Ansible playbook"
+        dir('Ansible') {
+          echo "🚀 Running Ansible playbook with Vault decryption..."
+          withCredentials([string(credentialsId: 'vault_pass', variable: 'VAULT_PASS')]) {
             sh '''
-                ansible-playbook \
+              echo "$VAULT_PASS" > /tmp/vault_pass.txt
+              chmod 600 /tmp/vault_pass.txt
+
+              ansible-playbook \
                     -i inventory.yml \
                     playbook_build.yml \
                     --extra-vars "@vault.yml" \
-                    --vault-password-file <(echo "$ANSIBLE_VAULT_PASS")
+                    --vault-password-file /tmp/vault_pass.txt
             '''
+          }
         }
       }
-    }
-
-    
+    }  
   }
 
   post {
