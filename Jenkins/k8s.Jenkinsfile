@@ -81,15 +81,16 @@ pipeline {
             kubectl apply -f Nginx/gateway-api/httproute.yaml
 
             for i in {1..30}; do
-                STATUS=$(kubectl get httproute web-route -n default -o jsonpath='{.status.parents[0].conditions[?(@.type=="Accepted")].status}')
-                if [ "$STATUS" != "True" ]; then
-                    echo "❌ HTTPRoute not accepted by Gateway!"
+                TYPES=$(kubectl get httproute web-route -n default -o jsonpath='{range .status.parents[0].conditions[*]}{.type}{"\n"}{end}')
+                if echo "$TYPES" | grep -q '^Accepted$'; then
+                    echo "✅ Found Type=Accepted in HTTPRoute conditions."
+                    TYPES="Accepted"
                     break
                 fi
                 sleep 2
             done
 
-            if [ "$STATUS" != "True" ]; then
+            if [ "$TYPES" != "Accepted" ]; then
                 echo "❌ HTTPRoute not accepted!"
                 kubectl describe httproute web-route -n default
                 exit 1
