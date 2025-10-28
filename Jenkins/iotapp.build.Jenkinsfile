@@ -1,12 +1,6 @@
 pipeline {
   agent any
 
-  environment {
-    // Ansible 將用這個 vault 檔來解密 BBB 密碼
-    ANSIBLE_VAULT_PASS = credentials('vault_pass')
-    SSH_KEY = credentials('bbb_ssh_key')
-  }
-
   stages {
     stage('Checkout Repository') {
       steps {
