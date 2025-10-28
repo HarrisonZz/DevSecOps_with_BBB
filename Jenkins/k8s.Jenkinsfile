@@ -41,8 +41,7 @@ pipeline {
                 kubectl apply -f redis/secret.yaml
 
                 # Nginx Gateway API
-                kubectl get secret tls-secret -n nginx-gateway >/dev/null 2>&1 || \
-                kubectl apply -f Nginx/certs_for_test/tls_secret.yaml
+                # kubectl apply -f Nginx/certs_for_test/tls_secret.yaml
 
                 '''
             }
