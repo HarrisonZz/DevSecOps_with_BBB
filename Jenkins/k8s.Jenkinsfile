@@ -1,3 +1,74 @@
+def Clean(String stageName) {
+    echo "🧹 [Clean] Starting cleanup from stage: ${stageName}"
+
+    // 階段清理順序（由前至後）
+    def stages = ['ELKStack', 'Prometheus&Grafana', 'GatewayAPI', 'WebApp', 'Config']
+
+    // 找出目前階段在順序陣列中的索引
+    def index = stages.indexOf(stageName)
+    if (index == -1) {
+        echo "⚠️ Unknown stage name: ${stageName}, skip cleanup."
+        return
+    }
+
+    // 從當前階段開始一路清理到底
+    for (int i = index; i < stages.size(); i++) {
+        def current = stages[i]
+        echo "🧹 [Clean] Cleaning resources for: ${current}"
+
+        if (current == 'ELKStack') {
+            sh '''
+            echo "[ELKStack] 清理 ELK Stack 資源"
+            kubectl delete -f Kubernetes/monitor/ELK/logstash.yaml --ignore-not-found=true
+            kubectl delete -f Kubernetes/monitor/ELK/logstash_configmap.yaml --ignore-not-found=true
+            kubectl delete -f Kubernetes/monitor/ELK/es.yaml --ignore-not-found=true
+            kubectl delete -f Kubernetes/Nginx/gateway-api/es-proxy.yaml --ignore-not-found=true
+            kubectl delete -f Kubernetes/Nginx/gateway-api/referenceGrant.yaml --ignore-not-found=true
+            helm uninstall kibana -n logging || true
+            kubectl label nodes node-agent task- || true
+            '''
+        }
+
+        if (current == 'Prometheus&Grafana') {
+            sh '''
+            echo "[Prometheus&Grafana] 清理監控堆疊資源"
+            kubectl delete -f Kubernetes/monitor/Grafana/grafana.yaml --ignore-not-found=true
+            kubectl delete -f Kubernetes/monitor/Prometheus/prometheus.yaml --ignore-not-found=true
+            '''
+        }
+
+        if (current == 'GatewayAPI') {
+            sh '''
+            echo "[GatewayAPI] 清理 Gateway API 元件"
+            kubectl delete -f Kubernetes/Nginx/gateway-api/httproute.yaml --ignore-not-found=true
+            kubectl delete -f Kubernetes/Nginx/gateway-api/gateway.yaml --ignore-not-found=true
+            helm uninstall ngf -n nginx-gateway || true
+            kubectl delete -f Kubernetes/Nginx/gateway-api/standard-install.yaml --ignore-not-found=true
+            '''
+        }
+
+        if (current == 'WebApp') {
+            sh '''
+            echo "[WebApp] 清理 Web 應用資源"
+            kubectl delete -f Kubernetes/web_app/ --ignore-not-found=true
+            kubectl delete -f Kubernetes/redis/ --ignore-not-found=true
+            '''
+        }
+
+        if (current == 'Config') {
+            sh '''
+            echo "[Config] 清理共用設定資源"
+            kubectl delete -f Kubernetes/web_app/role/ --ignore-not-found=true
+            kubectl delete -f Kubernetes/web_app/fluent-bit_cm.yaml --ignore-not-found=true
+            kubectl delete -f Kubernetes/redis/secret.yaml --ignore-not-found=true
+            kubectl delete secret web-tls --ignore-not-found=true
+            '''
+        }
+    }
+
+    echo "✅ [Clean] Finished cleanup up to stage: ${stageName}"
+}
+
 pipeline {
   agent { label 'wsl' }
 
@@ -53,12 +124,7 @@ pipeline {
             }
             failure {
                 echo '❌ Config 部署失敗'
-                sh '''
-                    kubectl delete -f Kubernetes/web_app/role/ --ignore-not-found=true
-                    kubectl delete -f Kubernetes/web_app/fluent-bit_cm.yaml --ignore-not-found=true
-                    kubectl delete -f Kubernetes/redis/secret.yaml --ignore-not-found=true
-                    kubectl delete secrets web-tls --ignore-not-found=true
-                '''
+                Clean('Config')
             }
         }
     }
@@ -84,12 +150,7 @@ pipeline {
             }
             failure {
                 echo '❌ WebApp 部署失敗'
-                sh '''
-                    kubectl delete -f Kubernetes/web_app/ --ignore-not-found=true
-                    kubectl delete -f Kubernetes/web_app/role/ --ignore-not-found=true
-
-                    kubectl delete -f Kubernetes/redis/ --ignore-not-found=true
-                '''
+                Clean('WebApp')
             }
         }
     }
@@ -119,12 +180,8 @@ pipeline {
             }
             failure {
                 echo '❌ Gateway API 部署失敗'
-                sh '''
-                    kubectl delete -f Kubernetes/Nginx/gateway-api/httproute.yaml --ignore-not-found=true
-                    kubectl delete -f Kubernetes/Nginx/gateway-api/gateway.yaml --ignore-not-found=true
-                    helm uninstall ngf -n nginx-gateway || true
-                    kubectl delete -f Kubernetes/Nginx/gateway-api/standard-install.yaml --ignore-not-found=true
-                '''
+                
+                Clean('GatewayAPI')
             }
         }
     }
@@ -155,10 +212,8 @@ pipeline {
             }
             failure {
                 echo '❌ Prometheus and Grafana 部署失敗'
-                sh '''
-                    kubectl delete -f Kubernetes/monitor/Grafana/grafana.yaml --ignore-not-found=true
-                    kubectl delete -f Kubernetes/monitor/Prometheus/prometheus.yaml --ignore-not-found=true
-                '''
+                
+                Clean('Prometheus&Grafana')
             }
         }
     }
@@ -197,15 +252,7 @@ pipeline {
             }
             failure {
                 echo '❌ ELK Stack 部署失敗'
-                sh '''
-                    kubectl delete -f Kubernetes/monitor/ELK/logstash.yaml --ignore-not-found=true
-                    kubectl delete -f Kubernetes/monitor/ELK/logstash_configmap.yaml --ignore-not-found=true
-                    kubectl delete -f Kubernetes/monitor/ELK/es.yaml --ignore-not-found=true
-                    kubectl delete -f Kubernetes/Nginx/gateway-api/es-proxy.yaml --ignore-not-found=true
-                    kubectl delete -f Kubernetes/Nginx/gateway-api/referenceGrant.yaml --ignore-not-found=true
-                    helm uninstall kibana -n logging || true
-                    kubectl label nodes node-agent task-
-                '''
+                Clean('ELKStack')
             }
         }
     }
