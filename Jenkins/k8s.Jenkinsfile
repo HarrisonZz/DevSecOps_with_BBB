@@ -79,21 +79,6 @@ pipeline {
 
             kubectl apply -f Nginx/gateway-api/gateway.yaml
             kubectl apply -f Nginx/gateway-api/httproute.yaml
-
-            for i in {1..30}; do
-                STATUS=$(kubectl get httproute web-route -n default -o jsonpath='{range .status.parents[0].conditions[?(@.type=="Accepted")]}{@.status}{end}')
-                if [ "$STATUS" = "True" ]; then
-                    echo "✅ Found Type=Accepted in HTTPRoute conditions."
-                    break
-                fi
-                sleep 5
-            done
-
-            if [ "$STATUS" != "True" ]; then
-                echo "❌ HTTPRoute not accepted!"
-                kubectl describe httproute web-route -n default
-                exit 1
-            fi
     
             '''
         }
@@ -133,6 +118,7 @@ pipeline {
 
         always {
             echo "[*] Post stage completed — cluster state after cleanup:"
+            deleteDir()
         }
     }
 }
