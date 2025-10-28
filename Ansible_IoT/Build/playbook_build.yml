@@ -1,0 +1,64 @@
+---
+- name: Clone, build, and run BBB IoT app
+  hosts: bbb_iot
+  become: no
+  vars:
+    repo_url: "https://github.com/HarrisonZz/BeagleBoneBlack_IoT.git"
+    branch: "main"
+    remote_app_dir: "/home/debian/BeagleBoneBlack_IoT"
+    binary_path: "{{ remote_app_dir }}/build/bin/bbb_web_server"
+
+  tasks:
+    - name: Ensure build tools are installed
+      become: yes
+      apt:
+        name:
+          - git
+          - cmake
+          - build-essential
+          - pkg-config
+          - libssl-dev
+        state: present
+        update_cache: yes
+
+    - name: Clone repository if not exists
+      git:
+        repo: "{{ repo_url }}"
+        dest: "{{ remote_app_dir }}"
+        version: "{{ branch }}"
+        update: yes
+
+    - name: Clean previous build directory
+      file:
+        path: "{{ remote_app_dir }}/build"
+        state: absent
+
+    - name: Ensure cert directory exists
+      file:
+        path: "{{ remote_app_dir }}/certs"
+        state: directory
+        mode: '0700'
+
+    - name: Copy certificates to BBB
+      copy:
+        src: "{{ playbook_dir }}/certs/"
+        dest: "{{ remote_app_dir }}/certs/"
+        mode: '0600
+        force: yes
+
+
+    - name: Configure and build mqtt_mutual
+      command: >
+        bash -c '
+          mkdir -p build &&
+          cd build &&
+          cmake -DBUILD_DEMOS=OFF -DBUILD_TESTS=OFF -DDOWNLOAD_CERTS=OFF .. &&
+          make mqtt_mutual -j$(nproc)
+        '
+      args:
+        chdir: "{{ remote_app_dir }}"
+
+    - name: Verify binary exists
+      stat:
+        path: "{{ binary_path }}"
+      register: binary_check

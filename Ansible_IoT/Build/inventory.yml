@@ -1,0 +1,13 @@
+all:
+  children:
+    edges:
+      hosts:
+        bbb_iot:
+          ansible_host: "192.168.6.2"
+          ansible_user: "debian"
+          ansible_become: yes
+      vars:
+        ansible_password: "{{ ansible_password }}"
+        ansible_become_method: sudo
+        ansible_become_password: "{{ ansible_password }}"
+
