@@ -22,6 +22,7 @@ def Clean(String stageName) {
             kubectl delete -f Kubernetes/monitor/ELK/logstash.yaml --ignore-not-found=true
             kubectl delete -f Kubernetes/monitor/ELK/logstash_configmap.yaml --ignore-not-found=true
             kubectl delete -f Kubernetes/monitor/ELK/es.yaml --ignore-not-found=true
+            kubectl delete -f Kubernetes/monitor/ELK/test-es-health.yaml --ignore-not-found=true
             kubectl delete -f Kubernetes/Nginx/gateway-api/es-proxy.yaml --ignore-not-found=true
             kubectl delete -f Kubernetes/Nginx/gateway-api/referenceGrant.yaml --ignore-not-found=true
             helm uninstall kibana -n logging || true
@@ -236,6 +237,7 @@ pipeline {
             kubectl apply -f ELK/logstash_configmap.yaml
             kubectl apply -f ELK/logstash.yaml
             kubectl rollout status deploy/logstash -n logging --timeout=600s
+            kubectl apply -f Kubernetes/monitor/ELK/test-es-health.yaml
 
             echo "[*] Waiting for Kibana startup..."
             helm install kibana ./ELK/kibana -n logging -f values/kibana-values.yaml
