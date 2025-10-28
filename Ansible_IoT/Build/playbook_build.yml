@@ -43,18 +43,15 @@
       copy:
         src: "{{ playbook_dir }}/certs/"
         dest: "{{ remote_app_dir }}/certs/"
-        mode: '0600
+        mode: '0600'
         force: yes
 
-
     - name: Configure and build mqtt_mutual
-      command: >
-        bash -c '
-          mkdir -p build &&
-          cd build &&
-          cmake -DBUILD_DEMOS=OFF -DBUILD_TESTS=OFF -DDOWNLOAD_CERTS=OFF .. &&
-          make mqtt_mutual -j$(nproc)
-        '
+      shell: |
+        mkdir -p build 
+        cd build
+        cmake -DBUILD_DEMOS=OFF -DBUILD_TESTS=OFF -DDOWNLOAD_CERTS=OFF .. &&
+        make mqtt_mutual -j$(nproc)""
       args:
         chdir: "{{ remote_app_dir }}"
 
