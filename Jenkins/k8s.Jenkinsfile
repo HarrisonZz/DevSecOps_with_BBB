@@ -75,7 +75,7 @@ pipeline {
             helm install ngf Nginx/gateway-api/nginx-gateway-fabric -n nginx-gateway --create-namespace
             
             echo "[*] Waiting for NGINX Gateway controller startup..."
-            kubectl rollout status deploy/ngf -n nginx-gateway --timeout=120s
+            kubectl rollout status deploy/ngf-nginx-gateway-fabric -n nginx-gateway --timeout=120s
 
             kubectl apply -f Nginx/gateway-api/gateway.yaml
             kubectl apply -f Nginx/gateway-api/httproute.yaml
