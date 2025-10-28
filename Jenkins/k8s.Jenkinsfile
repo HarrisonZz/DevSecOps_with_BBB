@@ -126,7 +126,7 @@ pipeline {
             kubectl delete -f Kubernetes/web_app/role/ --ignore-not-found=true
             kubectl delete -f Kubernetes/web_app/fluent-bit_cm.yaml --ignore-not-found=true
             kubectl delete -f Kubernetes/redis/secret.yaml --ignore-not-found=true
-            kubectl delete -f Kubernetes/Nginx/certs_for_test/tls_secret.yaml --ignore-not-found=true
+            kubectl delete secrets web-tls --ignore-not-found=true
             
             '''
         }
