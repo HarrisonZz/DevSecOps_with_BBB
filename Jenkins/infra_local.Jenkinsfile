@@ -85,6 +85,8 @@ pipeline {
 
                     git config --global user.email "jenkins@local"
                     git config --global user.name "Jenkins CI"
+                    git config --global commit.gpgsign false
+
 
                     git clone --depth=1 "https://$env:GIT_USER:$env:GITHUB_TOKEN@github.com/$env:GIT_USER/DevOps_Deploy.git" "D:\\tmp\\devops_deploy"
                     Set-Location "D:\\tmp\\devops_deploy"
@@ -102,7 +104,7 @@ pipeline {
 
                     git add .
                     $DateNow = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-                    git commit -m "CI: $env:JOB_NAME build #$env:BUILD_NUMBER at $DateNow" 2>$null
+                    git commit -m "CI: $env:JOB_NAME build #$env:BUILD_NUMBER at $DateNow"
                     git push -u origin $NewBranch
 
                     Write-Host "[*] Creating Pull Request via GitHub API..."
