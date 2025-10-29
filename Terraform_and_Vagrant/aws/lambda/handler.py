@@ -93,7 +93,7 @@ def handler(event, context):
             cache = cache_match.group(1) if cache_match else None
 
             cur.execute("""
-                INSERT INTO web_app_logs (timestamp, level, host, duration_ms, cache)
+                INSERT INTO web_app_logs (timestamp, level, pod_name, duration_ms, cache)
                 VALUES (%s, %s, %s, %s, %s)
             """, (
                 src.get("@timestamp"),
