@@ -13,6 +13,15 @@ pipeline {
 
   agent { label 'wsl' }
   stages {
+
+    stage('Checkout Repo') {
+      steps {
+        // 從 GitHub 抓 main branch
+        git branch: 'main', 
+            url: 'https://github.com/HarrisonZz/DevSecOps_with_BBB.git'
+      }
+    }
+
     stage('Verify Environment') {
       steps {
         dir('Ansible') {
