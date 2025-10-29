@@ -68,8 +68,7 @@
     - name: Archive build directory into tar.gz
       become: no
       shell: |
-        cd "{{ remote_app_dir }}/build"
-        tar -czf /tmp/iot_build.tar.gz .
+        tar -czf /tmp/iot_build.tar.gz -C "{{ remote_app_dir }}" build
       args:
         executable: /bin/bash
       when: binary_check.stat.exists
