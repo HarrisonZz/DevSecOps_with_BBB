@@ -94,7 +94,7 @@ pipeline {
         def newBranch = "${jobNameSafe}-build-${env.BUILD_NUMBER}"
 
         withCredentials([string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')]) {
-          sh """
+          sh '''
             set -e
             echo "[*] Cloning Deploy Repo..."
 
@@ -102,7 +102,7 @@ pipeline {
             git config --global user.email "jenkins@local"
             git config --global user.name "Jenkins CI"
 
-            git clone --depth=1 https://${GIT_USER}:${GITHUB_TOKEN}@github.com/${GIT_USER}/DevOps_Deploy.git /tmp/devops_deploy
+            git clone --depth=1 https://${env.GIT_USER}:$GITHUB_TOKEN@github.com/${env.GIT_USER}/DevOps_Deploy.git /tmp/devops_deploy
             cd /tmp/devops_deploy
 
             echo "[*] Creating new branch: ${newBranch}"
@@ -119,14 +119,14 @@ pipeline {
             echo "[*] Creating Pull Request via GitHub API..."
             curl -s -X POST -H "Authorization: token ${GITHUB_TOKEN}" \
                  -H "Accept: application/vnd.github+json" \
-                 https://api.github.com/repos/${GIT_USER}/DevOps_Deploy/pulls \
+                 https://api.github.com/repos/${env.GIT_USER}/DevOps_Deploy/pulls \
                  -d "{
                    \\"title\\\": \\"${env.JOB_NAME} build #${env.BUILD_NUMBER}\\",
                    \\"body\\\": \\"Auto-generated PR from Jenkins pipeline.\\",
                    \\"head\\\": \\"${newBranch}\\",
                    \\"base\\\": \\"${BASE_BRANCH}\\"
                  }"
-          """
+          '''
         }
       
       }
