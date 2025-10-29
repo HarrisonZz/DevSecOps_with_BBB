@@ -111,12 +111,12 @@ pipeline {
 
               echo "[*] Copying artifacts from pipeline..."
               mkdir -p ansible/local
-              cp -r "$WORKSPACE/Ansible/"* ansible/local/
+              cp -r "$WORKSPACE/Ansible/*" ansible/local/
 
               git add .
-              git commit -m "CI: $JOB_NAME build #$BUILD_NUMBER at $(date '+%Y-%m-%d %H:%M:%S')" || echo "No changes to commit"
 
               if ! git diff --cached --quiet; then
+                git commit -m "CI: $JOB_NAME build #$BUILD_NUMBER at $(date '+%Y-%m-%d %H:%M:%S')" || echo "No changes to commit"
                 git push -u origin "$NEW_BRANCH"
 
                 echo "[*] Creating Pull Request via GitHub API..."
