@@ -1,12 +1,12 @@
-# module "lambda" {
-#   source = "./modules/lambda"
-# }
+module "lambda" {
+  source = "./modules/lambda"
+}
 
-# module "api_gateway" {
-#   source            = "./modules/api_gateway"
-#   lambda_invoke_arn = module.lambda.lambda_invoke_arn
-#   lambda_name       = module.lambda.lambda_name
-# }
+module "api_gateway" {
+  source            = "./modules/api_gateway"
+  lambda_invoke_arn = module.lambda.lambda_invoke_arn
+  lambda_name       = module.lambda.lambda_name
+}
 
 provider "aws" {
   region  = "ap-northeast-2"
@@ -220,6 +220,10 @@ resource "aws_iam_role" "lambda_role" {
       Action    = "sts:AssumeRole"
     }]
   })
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "aws_iam_role_policy_attachment" "lambda_basic_execution" {
@@ -266,29 +270,38 @@ resource "aws_lambda_function" "write_to_aurora" {
     Name = "lambda-write-aurora"
   }
   timeout = 30
+
+  depends_on = [
+    aws_iam_role_policy_attachment.lambda_vpc_access,
+  ]
 }
 
 ############################################################
 # 5. EventBridge Rule (定時觸發 Lambda)
 ############################################################
-#resource "aws_cloudwatch_event_rule" "lambda_schedule" {
-#  name                = "lambda-cron-rule"
-#  schedule_expression = "rate(5 minutes)" # 每5分鐘觸發
-#}
+resource "aws_cloudwatch_event_rule" "lambda_schedule" {
+  name                = "lambda-cron-rule"
+  description         = "Trigger Lambda function every 5 minutes"
+  schedule_expression = "rate(5 minutes)" # 每5分鐘觸發
+}
 
-#resource "aws_cloudwatch_event_target" "lambda_target" {
-#  rule      = aws_cloudwatch_event_rule.lambda_schedule.name
-#  target_id = "write-to-aurora"
-#  arn       = aws_lambda_function.write_to_aurora.arn
-#}
+resource "aws_cloudwatch_event_target" "lambda_target" {
+  rule      = aws_cloudwatch_event_rule.lambda_schedule.name
+  target_id = "write-to-aurora"
+  arn       = aws_lambda_function.write_to_aurora.arn
 
-# resource "aws_lambda_permission" "allow_eventbridge" {
-#   statement_id  = "AllowExecutionFromEventBridge"
-#   action        = "lambda:InvokeFunction"
-#   function_name = aws_lambda_function.write_to_aurora.function_name
-#   principal     = "events.amazonaws.com"
-#   source_arn    = aws_cloudwatch_event_rule.lambda_schedule.arn
-# }
+  depends_on = [
+    aws_lambda_function.write_to_aurora
+  ]
+}
+
+resource "aws_lambda_permission" "allow_eventbridge" {
+  statement_id  = "AllowExecutionFromEventBridge"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.write_to_aurora.function_name
+  principal     = "events.amazonaws.com"
+  source_arn    = aws_cloudwatch_event_rule.lambda_schedule.arn
+}
 
 output "aurora_endpoint" {
   value = aws_rds_cluster.aurora_cluster.endpoint
@@ -299,7 +312,7 @@ output "lambda_name" {
 }
 
 
-# output "api_gateway_url" {
-#   description = "The full invoke URL for HTTP API"
-#   value       = module.api_gateway.invoke_gateway_url
-# }
+output "api_gateway_url" {
+  description = "The full invoke URL for HTTP API"
+  value       = module.api_gateway.invoke_gateway_url
+}
