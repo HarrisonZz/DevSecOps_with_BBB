@@ -68,7 +68,7 @@ pipeline {
         success {
             echo "✅ Infrastructure successfully deployed."
             script {
-                echo "✅ Ansible pipeline completed successfully — preparing GitHub PR..."
+                echo "✅ Infra-local pipeline completed successfully — preparing GitHub PR..."
 
                 def jobNameSafe = 'infra-local'
                 def newBranch = "${jobNameSafe}-build-${env.BUILD_NUMBER}"
