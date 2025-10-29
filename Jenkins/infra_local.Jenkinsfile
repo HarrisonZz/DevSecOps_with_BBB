@@ -81,6 +81,8 @@ pipeline {
                     Write-Host "[*] Cloning Deploy Repo..."
 
                     Remove-Item -Recurse -Force "D:\\tmp\\devops_deploy" -ErrorAction SilentlyContinue
+                    New-Item -ItemType Directory -Path "D:\\tmp\\devops_deploy"
+
                     git config --global user.email "jenkins@local"
                     git config --global user.name "Jenkins CI"
 
