@@ -50,7 +50,7 @@
       shell: |
         mkdir -p build 
         cd build
-        cmake -DBUILD_DEMOS=OFF -DBUILD_TESTS=OFF -DDOWNLOAD_CERTS=OFF -DBUILD_STATIC_LIBS=ON -DBUILD_SHARED_LIBS=OFF .. &&
+        cmake -DBUILD_DEMOS=OFF -DBUILD_TESTS=OFF -DDOWNLOAD_CERTS=OFF -DBUILD_SHARED_LIBS=OFF .. &&
         make mqtt_mutual -j$(nproc)""
       args:
         chdir: "{{ remote_app_dir }}"
@@ -65,9 +65,18 @@
         msg: "Binary not found at {{ binary_path }}"
       when: not binary_check.stat.exists
 
+    - name: Archive build directory into tar.gz
+      become: no
+      shell: |
+        cd "{{ remote_app_dir }}/build"
+        tar -czf /tmp/iot_build.tar.gz .
+      args:
+        executable: /bin/bash
+      when: binary_check.stat.exists
+
     - name: Fetch built binary back to controller
       fetch:
-        src: "{{ binary_path }}"
+        src: "/tmp/iot_build.tar.gz"
         dest: "/tmp/bbb_iot/"
         flat: yes
       when: binary_check.stat.exists
