@@ -95,7 +95,10 @@ pipeline {
 
                     Write-Host "[*] Copying artifacts..."
                     New-Item -ItemType Directory -Force -Path "terraform\\local" | Out-Null
-                    Copy-Item "$env:WORKSPACE\\Terraform_and_Vagrant\\on-premises\\*" -Destination "terraform\\local" -Recurse -Force
+                    Copy-Item "$env:WORKSPACE\\Terraform_and_Vagrant\\on-premises\\scripts" -Destination "terraform\\local" -Recurse -Force
+                    Copy-Item "$env:WORKSPACE\\Terraform_and_Vagrant\\on-premises\\main.tf" -Destination "terraform\\local" -Force
+                    Copy-Item "$env:WORKSPACE\\Terraform_and_Vagrant\\on-premises\\Vagrantfile" -Destination "terraform\\local" -Force
+                    Copy-Item "$env:WORKSPACE\\Terraform_and_Vagrant\\on-premises\\variable.tf" -Destination "terraform\\local" -Force
 
                     git add .
                     $DateNow = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
