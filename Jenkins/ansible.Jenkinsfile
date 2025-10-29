@@ -90,8 +90,7 @@ pipeline {
       script {
         echo "✅ Ansible pipeline completed successfully — preparing GitHub PR..."
 
-        def jobNameSafe = "env-config"
-        def newBranch = "${jobNameSafe}-build-${env.BUILD_NUMBER}"
+        def newBranch = "${env.JOB_NAME}-build-${env.BUILD_NUMBER}"
 
         withCredentials([string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')]) {
             withEnv(["NEW_BRANCH=${newBranch}"]) { 
@@ -102,6 +101,7 @@ pipeline {
               rm -rf /tmp/devops_deploy
               git config --global user.email "jenkins@local"
               git config --global user.name "Jenkins CI"
+              git config --global commit.gpgsign false
 
               git clone --depth=1 https://$GIT_USER:$GITHUB_TOKEN@github.com/$GIT_USER/DevOps_Deploy.git /tmp/devops_deploy
               cd /tmp/devops_deploy
@@ -115,18 +115,27 @@ pipeline {
 
               git add .
               git commit -m "CI: $JOB_NAME build #$BUILD_NUMBER at $(date '+%Y-%m-%d %H:%M:%S')" || echo "No changes to commit"
-              git push -u origin "$NEW_BRANCH"
 
-              echo "[*] Creating Pull Request via GitHub API..."
-              curl -s -X POST -H "Authorization: token $GITHUB_TOKEN" \
-                  -H "Accept: application/vnd.github+json" \
-                  "https://api.github.com/repos/$GIT_USER/DevOps_Deploy/pulls" \
-                  -d "{
-                    \\"title\\\": \\"$JOB_NAME build #$BUILD_NUMBER\\",
-                    \\"body\\\": \\"Auto-generated PR from Jenkins pipeline.\\",
-                    \\"head\\\": \\"$NEW_BRANCH\\",
-                    \\"base\\\": \\"$BASE_BRANCH\\"
-                  }"
+              if ! git diff --cached --quiet; then
+                git push -u origin "$NEW_BRANCH"
+
+                echo "[*] Creating Pull Request via GitHub API..."
+                PR_DATA=$(cat <<EOF
+                {
+                  "title": "$JOB_NAME build #$BUILD_NUMBER",
+                  "body": "Auto-generated PR from Jenkins pipeline.",
+                  "head": "$NEW_BRANCH",
+                  "base": "main"
+                }
+                EOF
+                )
+                curl -s -X POST -H "Authorization: token $GITHUB_TOKEN" \
+                    -H "Accept: application/vnd.github+json" \
+                    "https://api.github.com/repos/$GIT_USER/DevOps_Deploy/pulls" \
+                    -d "$PR_DATA"
+              else
+                echo "[!] No changes detected. Skipping push and PR creation."
+              fi
             '''
           }
         }
