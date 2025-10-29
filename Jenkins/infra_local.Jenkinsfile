@@ -77,39 +77,42 @@ pipeline {
                 def newBranch = "${jobNameSafe}-build-${env.BUILD_NUMBER}"
 
                 withCredentials([string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')]) {
-                sh """
-                    set -e
-                    echo "[*] Cloning Deploy Repo..."
+                powershell '''
+                    Write-Host "[*] Cloning Deploy Repo..."
 
-                    rm -rf /tmp/devops_deploy
+                    Remove-Item -Recurse -Force "D:\\tmp\\devops_deploy" -ErrorAction SilentlyContinue
                     git config --global user.email "jenkins@local"
                     git config --global user.name "Jenkins CI"
 
-                    git clone --depth=1 https://${GIT_USER}:${GITHUB_TOKEN}@github.com/${GIT_USER}/DevOps_Deploy.git /tmp/devops_deploy
-                    cd /tmp/devops_deploy
+                    git clone --depth=1 "https://$env:GIT_USER:$env:GITHUB_TOKEN@github.com/$env:GIT_USER/DevOps_Deploy.git" "C:\\tmp\\devops_deploy"
+                    Set-Location "D:\\tmp\\devops_deploy"
 
-                    echo "[*] Creating new branch: ${newBranch}"
-                    git checkout -b ${newBranch}
+                    $NewBranch = "$env:JOB_NAME-build-$env:BUILD_NUMBER"
+                    Write-Host "[*] Creating new branch: $NewBranch"
+                    git checkout -b $NewBranch
 
-                    echo "[*] Copying artifacts from pipeline..."
-                    mkdir -p terraform/local
-                    cp -r ${WORKSPACE}/Terraform_and_Vagrant/on-premises/* terraform/local/
+                    Write-Host "[*] Copying artifacts..."
+                    New-Item -ItemType Directory -Force -Path "terraform\\local" | Out-Null
+                    Copy-Item "$env:WORKSPACE\\Terraform_and_Vagrant\\on-premises\\*" -Destination "terraform\\local" -Recurse -Force
 
                     git add .
-                    git commit -m "CI: ${env.JOB_NAME} build #${env.BUILD_NUMBER} at \$(date '+%Y-%m-%d %H:%M:%S')" || echo "No changes to commit"
-                    git push -u origin ${newBranch}
+                    $DateNow = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+                    git commit -m "CI: $env:JOB_NAME build #$env:BUILD_NUMBER at $DateNow" 2>$null
+                    git push -u origin $NewBranch
 
-                    echo "[*] Creating Pull Request via GitHub API..."
-                    curl -s -X POST -H "Authorization: token ${GITHUB_TOKEN}" \
-                        -H "Accept: application/vnd.github+json" \
-                        https://api.github.com/repos/${GIT_USER}/DevOps_Deploy/pulls \
-                        -d "{
-                        \\"title\\\": \\"${env.JOB_NAME} build #${env.BUILD_NUMBER}\\",
-                        \\"body\\\": \\"Auto-generated PR from Jenkins pipeline.\\",
-                        \\"head\\\": \\"${newBranch}\\",
-                        \\"base\\\": \\"${env.BASE_BRANCH}\\"
-                        }"
-                """
+                    Write-Host "[*] Creating Pull Request via GitHub API..."
+                    $body = @{
+                        title = "$env:JOB_NAME build #$env:BUILD_NUMBER"
+                        body  = "Auto-generated PR from Jenkins pipeline."
+                        head  = "$NewBranch"
+                        base  = "$env:BASE_BRANCH"
+                    } | ConvertTo-Json
+
+                    Invoke-RestMethod -Uri "https://api.github.com/repos/$env:GIT_USER/DevOps_Deploy/pulls" `
+                        -Headers @{ Authorization = "token $env:GITHUB_TOKEN"; Accept = "application/vnd.github+json" } `
+                        -Method POST -Body $body
+
+                '''
                 }
             
             }
