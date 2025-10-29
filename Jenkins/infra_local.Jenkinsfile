@@ -4,6 +4,7 @@ pipeline {
     environment {
         JENKINS_NODE_COOKIE = 'dontKillMe'
         TF_VAR_copy_script = "copy_to_jenkins.sh"
+        GIT_USER = 'HarrisonZz'
     }
 
     stages {
