@@ -6,7 +6,7 @@
     repo_url: "https://github.com/HarrisonZz/BeagleBoneBlack_IoT.git"
     branch: "main"
     remote_app_dir: "/home/debian/BeagleBoneBlack_IoT"
-    binary_path: "{{ remote_app_dir }}/build/bin/bbb_web_server"
+    binary_path: "{{ remote_app_dir }}/build/bin/mqtt_mutual"
 
   tasks:
     - name: Ensure build tools are installed
