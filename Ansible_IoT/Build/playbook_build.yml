@@ -50,7 +50,7 @@
       shell: |
         mkdir -p build 
         cd build
-        cmake -DBUILD_DEMOS=OFF -DBUILD_TESTS=OFF -DDOWNLOAD_CERTS=OFF .. &&
+        cmake -DBUILD_DEMOS=OFF -DBUILD_TESTS=OFF -DDOWNLOAD_CERTS=OFF -DBUILD_STATIC_LIBS=ON -DBUILD_SHARED_LIBS=OFF .. &&
         make mqtt_mutual -j$(nproc)""
       args:
         chdir: "{{ remote_app_dir }}"

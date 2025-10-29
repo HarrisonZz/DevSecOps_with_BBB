@@ -67,7 +67,6 @@ pipeline {
           aws s3 cp "${BINARY_PATH}" "s3://${S3_BUCKET}/bin/${BINARY_NAME}.bin" --region ${AWS_REGION}
           echo "[✓] Upload completed and versioned."
 
-          rm -r /tmp/bbb-iot/
         else
           echo "[!] Binary not found at ${BINARY_PATH}, skipping upload."
         fi
