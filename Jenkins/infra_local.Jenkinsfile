@@ -107,7 +107,7 @@ pipeline {
                         \\"title\\\": \\"${env.JOB_NAME} build #${env.BUILD_NUMBER}\\",
                         \\"body\\\": \\"Auto-generated PR from Jenkins pipeline.\\",
                         \\"head\\\": \\"${newBranch}\\",
-                        \\"base\\\": \\"${BASE_BRANCH}\\"
+                        \\"base\\\": \\"${env.BASE_BRANCH}\\"
                         }"
                 """
                 }
