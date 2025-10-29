@@ -83,7 +83,7 @@
     
     - name: Remove source directory after fetching binary
       file:
-        path: "{{ remote_app_dir }}"
+        path: "{{ remote_app_dir }}/build"
         state: absent
       when: binary_check.stat.exists
     
