@@ -4,8 +4,8 @@ pipeline {
   environment {
     AWS_REGION = 'ap-northeast-2'
     S3_BUCKET  = 'bbb-iot-artifact-registry'
-    BINARY_NAME = 'mqtt_mutual'
-    BINARY_PATH = '/tmp/bbb_iot/mqtt_mutual'
+    ARTIFACT_NAME = 'iot_build.tar.gz'
+    ARTIFACT_PATH = '/tmp/bbb_iot/iot_build.tar.gz'
   }
 
 
@@ -62,13 +62,13 @@ pipeline {
     success {
       echo "✅ Deployment and build completed successfully! — uploading binary to S3..."
       sh '''
-        if [ -f "${BINARY_PATH}" ]; then
+        if [ -f "${ARTIFACT_PATH}" ]; then
           echo "[*] Uploading ${BINARY_NAME} to S3 bucket: ${S3_BUCKET}"
-          aws s3 cp "${BINARY_PATH}" "s3://${S3_BUCKET}/bin/${BINARY_NAME}.bin" --region ${AWS_REGION}
+          aws s3 cp "${ARTIFACT_PATH}" "s3://${S3_BUCKET}/artifacts/${ARTIFACT_NAME}" --region ${AWS_REGION}
           echo "[✓] Upload completed and versioned."
 
         else
-          echo "[!] Binary not found at ${BINARY_PATH}, skipping upload."
+          echo "[!] Artifact not found at ${ARTIFACT_PATH}, skipping upload."
         fi
       '''
 
