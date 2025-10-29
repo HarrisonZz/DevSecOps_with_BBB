@@ -1,6 +1,14 @@
 pipeline {
   agent { label 'wsl' }
 
+  environment {
+    AWS_REGION = 'ap-northeast-2'
+    S3_BUCKET  = 'bbb-iot-artifact-registry'
+    BINARY_NAME = 'mqtt_mutual'
+    BINARY_PATH = '/tmp/bbb_iot/mqtt_mutual'
+  }
+
+
   stages {
     stage('Checkout Repository') {
       steps {
@@ -52,7 +60,19 @@ pipeline {
 
   post {
     success {
-      echo "✅ Deployment and build completed successfully!"
+      echo "✅ Deployment and build completed successfully! — uploading binary to S3..."
+      sh '''
+        if [ -f "${BINARY_PATH}" ]; then
+          echo "[*] Uploading ${BINARY_NAME} to S3 bucket: ${S3_BUCKET}"
+          aws s3 cp "${BINARY_PATH}" "s3://${S3_BUCKET}/bin/${BINARY_NAME}.bin" --region ${AWS_REGION}
+          echo "[✓] Upload completed and versioned."
+
+          rm -r /tmp/bbb-iot/
+        else
+          echo "[!] Binary not found at ${BINARY_PATH}, skipping upload."
+        fi
+      '''
+
     }
     failure {
       echo "❌ Build failed. Please check Ansible logs."
