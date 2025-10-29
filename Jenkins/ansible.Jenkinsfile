@@ -120,15 +120,12 @@ pipeline {
                 git push -u origin "$NEW_BRANCH"
 
                 echo "[*] Creating Pull Request via GitHub API..."
-                PR_DATA=$(cat <<EOF
-                {
-                  "title": "$JOB_NAME build #$BUILD_NUMBER",
+                PR_DATA='{
+                  "title": "'"$JOB_NAME"' build #'"$BUILD_NUMBER"'",
                   "body": "Auto-generated PR from Jenkins pipeline.",
-                  "head": "$NEW_BRANCH",
+                  "head": "'"$NEW_BRANCH"'",
                   "base": "main"
-                }
-                EOF
-                )
+                }'
                 curl -s -X POST -H "Authorization: token $GITHUB_TOKEN" \
                     -H "Accept: application/vnd.github+json" \
                     "https://api.github.com/repos/$GIT_USER/DevOps_Deploy/pulls" \
