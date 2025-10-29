@@ -111,7 +111,7 @@ pipeline {
 
               echo "[*] Copying artifacts from pipeline..."
               mkdir -p ansible/local
-              cp -r "$WORKSPACE/Ansible/*" ansible/local/
+              cp -r "$WORKSPACE/Ansible/"* ansible/local/
 
               git add .
 
