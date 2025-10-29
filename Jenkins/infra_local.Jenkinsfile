@@ -67,6 +67,49 @@ pipeline {
         }
         success {
             echo "✅ Infrastructure successfully deployed."
+            script {
+                echo "✅ Ansible pipeline completed successfully — preparing GitHub PR..."
+
+                def jobNameSafe = 'infra-local'
+                def newBranch = "${jobNameSafe}-build-${env.BUILD_NUMBER}"
+
+                withCredentials([string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')]) {
+                sh """
+                    set -e
+                    echo "[*] Cloning Deploy Repo..."
+
+                    rm -rf /tmp/devops_deploy
+                    git config --global user.email "jenkins@local"
+                    git config --global user.name "Jenkins CI"
+
+                    git clone --depth=1 https://${GIT_USER}:${GITHUB_TOKEN}@github.com/${GIT_USER}/DevOps_Deploy.git /tmp/devops_deploy
+                    cd /tmp/devops_deploy
+
+                    echo "[*] Creating new branch: ${newBranch}"
+                    git checkout -b ${newBranch}
+
+                    echo "[*] Copying artifacts from pipeline..."
+                    mkdir -p terraform/local
+                    cp -r ${WORKSPACE}/Terraform_and_Vagrant/on-premises/* terraform/local/
+
+                    git add .
+                    git commit -m "CI: ${env.JOB_NAME} build #${env.BUILD_NUMBER} at $(date '+%Y-%m-%d %H:%M:%S')" || echo "No changes to commit"
+                    git push -u origin ${newBranch}
+
+                    echo "[*] Creating Pull Request via GitHub API..."
+                    curl -s -X POST -H "Authorization: token ${GITHUB_TOKEN}" \
+                        -H "Accept: application/vnd.github+json" \
+                        https://api.github.com/repos/${GIT_USER}/DevOps_Deploy/pulls \
+                        -d "{
+                        \\"title\\\": \\"${env.JOB_NAME} build #${env.BUILD_NUMBER}\\",
+                        \\"body\\\": \\"Auto-generated PR from Jenkins pipeline.\\",
+                        \\"head\\\": \\"${newBranch}\\",
+                        \\"base\\\": \\"${BASE_BRANCH}\\"
+                        }"
+                """
+                }
+            
+            }
         }
     }
 }

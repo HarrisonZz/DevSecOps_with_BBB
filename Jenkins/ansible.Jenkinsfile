@@ -90,7 +90,7 @@ pipeline {
       script {
         echo "✅ Ansible pipeline completed successfully — preparing GitHub PR..."
 
-        def jobNameSafe = env.JOB_NAME.toLowerCase().replaceAll('\\s+', '-')
+        def jobNameSafe = "env-config"
         def newBranch = "${jobNameSafe}-build-${env.BUILD_NUMBER}"
 
         withCredentials([string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')]) {
