@@ -93,7 +93,7 @@ pipeline {
                     cp -r ${WORKSPACE}/Terraform_and_Vagrant/on-premises/* terraform/local/
 
                     git add .
-                    git commit -m "CI: ${env.JOB_NAME} build #${env.BUILD_NUMBER} at $(date '+%Y-%m-%d %H:%M:%S')" || echo "No changes to commit"
+                    git commit -m "CI: ${env.JOB_NAME} build #${env.BUILD_NUMBER} at \$(date '+%Y-%m-%d %H:%M:%S')" || echo "No changes to commit"
                     git push -u origin ${newBranch}
 
                     echo "[*] Creating Pull Request via GitHub API..."
