@@ -60,3 +60,49 @@
         path: "{{ binary_path }}"
       register: binary_check
     
+    - name: Deploy BeagleBone IoT MQTT client service
+      become: yes
+      copy:
+        dest: /etc/systemd/system/bbb_iot_app.service
+        mode: '0644'
+        content: |
+          [Unit]
+          Description=BeagleBone IoT MQTT Client
+          After=network-online.target
+          Wants=network-online.target
+
+          [Service]
+          Type=simple
+          User=debian
+          Group=debian
+          WorkingDirectory=/home/debian/BeagleBoneBlack_IoT/build/bin
+          ExecStart=/usr/bin/stdbuf -oL -eL /home/debian/BeagleBoneBlack_IoT/build/bin/mqtt_mutual
+          StandardOutput=journal
+          StandardError=journal
+          Restart=on-failure
+          RestartSec=5
+
+          [Install]
+          WantedBy=multi-user.target
+
+    - name: Reload systemd daemon
+      become: yes
+      command: systemctl daemon-reload
+
+    - name: Enable and start bbb_iot_app.service
+      become: yes
+      systemd:
+        name: bbb_iot_app.service
+        enabled: yes
+        state: started
+
+    - name: Verify service status
+      become: yes
+      command: systemctl is-active bbb_iot_app.service
+      register: service_status
+      changed_when: false
+
+    - name: Show current service state
+      debug:
+        msg: "bbb_iot_app.service is {{ service_status.stdout }}"
+
