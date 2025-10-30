@@ -289,15 +289,15 @@ pipeline {
                     git checkout -b "$NEW_BRANCH"
 
                     echo "[*] Copying artifacts from pipeline..."
-                    rsync -av "$WORKSPACE/Kubernetes/monitor/ELK/" kubernetes/monitor/elk/
-                    rsync -av "$WORKSPACE/Kubernetes/monitor/Prometheus/" kubernetes/monitor/prometheus/
-                    rsync -av "$WORKSPACE/Kubernetes/monitor/Grafana/" kubernetes/monitor/grafana/
+                    rsync -av --mkpath "$WORKSPACE/Kubernetes/monitor/ELK/" kubernetes/monitor/elk/
+                    rsync -av --mkpath "$WORKSPACE/Kubernetes/monitor/Prometheus/" kubernetes/monitor/prometheus/
+                    rsync -av --mkpath "$WORKSPACE/Kubernetes/monitor/Grafana/" kubernetes/monitor/grafana/
 
-                    rsync -av "$WORKSPACE/Kubernetes/Nginx/gawtway-api/" kubernetes/gateway_api/
-                    rsync -av "$WORKSPACE/Kubernetes/Nginx/certs_for_test/tls_secret.yaml" kubernetes/gateway_api/
+                    rsync -av --mkpath "$WORKSPACE/Kubernetes/Nginx/gawtway-api/" kubernetes/gateway_api/
+                    rsync -av --mkpath "$WORKSPACE/Kubernetes/Nginx/certs_for_test/tls_secret.yaml" kubernetes/gateway_api/
 
-                    rsync -av "$WORKSPACE/Kubernetes/redis/" kubernetes/redis/
-                    rsync -av "$WORKSPACE/Kubernetes/web_app/" kubernetes/http_server/
+                    rsync -av --mkpath "$WORKSPACE/Kubernetes/redis/" kubernetes/redis/
+                    rsync -av --mkpath "$WORKSPACE/Kubernetes/web_app/" kubernetes/http_server/
 
                     git add .
 
