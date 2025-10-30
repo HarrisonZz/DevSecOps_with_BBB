@@ -3,6 +3,9 @@ pipeline {
 
     environment {
         JENKINS_NODE_COOKIE = 'dontKillMe'
+
+        GIT_USER = 'HarrisonZz'
+        BASE_BRANCH = 'main'
     }
 
     stages {
