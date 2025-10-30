@@ -72,6 +72,10 @@ pipeline {
 
   environment {
         KUBECONFIG = '/var/lib/jenkins/.kubeconfig'
+
+        GIT_REPO_URL = 'https://github.com/HarrisonZz/DevOps_Deploy.git'
+        GIT_USER = 'HarrisonZz'
+        BRANCH = 'main'
     }
 
   stages {
@@ -198,6 +202,7 @@ pipeline {
             echo "[*] Waiting for Grafana startup..."
             kubectl apply -f Grafana/grafana.yaml
             kubectl rollout status deploy/grafana -n monitoring --timeout=600s
+            kubectl apply -f Grafana/grafana-test.yaml
 
     
             '''
@@ -260,8 +265,65 @@ pipeline {
 
   post {
         success {
-            echo "✅ Test passed, cleaning up resources..."
-            deleteDir()
+            script {
+                echo "✅ Kubernetes pipeline completed successfully — preparing GitHub PR..."
+
+                def newBranch = "${env.JOB_NAME}-build-${env.BUILD_NUMBER}"
+
+                withCredentials([string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')]) {
+                    withEnv(["NEW_BRANCH=${newBranch}"]) { 
+                    sh '''#!/bin/bash
+                    set -e
+                    echo "[*] Cloning Deploy Repo..."
+
+                    rm -rf /tmp/devops_deploy
+                    git config --global user.email "jenkins@local"
+                    git config --global user.name "Jenkins CI"
+                    git config --global commit.gpgsign false
+
+                    git clone --depth=1 https://$GIT_USER:$GITHUB_TOKEN@github.com/$GIT_USER/DevOps_Deploy.git /tmp/devops_deploy
+                    cd /tmp/devops_deploy
+                    mkdir -p kubernetes
+
+                    echo "[*] Creating new branch: $NEW_BRANCH"
+                    git checkout -b "$NEW_BRANCH"
+
+                    echo "[*] Copying artifacts from pipeline..."
+                    rsync -av "$WORKSPACE/Kubernetes/monitor/ELK/" kubernetes/monitor/elk/
+                    rsync -av "$WORKSPACE/Kubernetes/monitor/Prometheus/" kubernetes/monitor/prometheus/
+                    rsync -av "$WORKSPACE/Kubernetes/monitor/Grafana/" kubernetes/monitor/grafana/
+
+                    rsync -av "$WORKSPACE/Kubernetes/Nginx/gawtway-api/" kubernetes/gateway_api/
+                    rsync -av "$WORKSPACE/Kubernetes/Nginx/certs_for_test/tls_secret.yaml" kubernetes/gateway_api/
+
+                    rsync -av "$WORKSPACE/Kubernetes/redis/" kubernetes/redis/
+                    rsync -av "$WORKSPACE/Kubernetes/web_app/" kubernetes/http_server/
+
+                    git add .
+
+                    if ! git diff --cached --quiet; then
+                        git commit -m "CI: $JOB_NAME build #$BUILD_NUMBER at $(date '+%Y-%m-%d %H:%M:%S')" || echo "No changes to commit"
+                        git push -u origin "$NEW_BRANCH"
+
+                        echo "[*] Creating Pull Request via GitHub API..."
+                        PR_DATA='{
+                        "title": "'"$JOB_NAME"' build #'"$BUILD_NUMBER"'",
+                        "body": "Auto-generated PR from Jenkins pipeline.",
+                        "head": "'"$NEW_BRANCH"'",
+                        "base": "main"
+                        }'
+                        curl -s -X POST -H "Authorization: token $GITHUB_TOKEN" \
+                            -H "Accept: application/vnd.github+json" \
+                            "https://api.github.com/repos/$GIT_USER/DevOps_Deploy/pulls" \
+                            -d "$PR_DATA"
+                    else
+                        echo "[!] No changes detected. Skipping push and PR creation."
+                    fi
+                    '''
+                }
+                }
+            
+            }
         }
 
         failure {
