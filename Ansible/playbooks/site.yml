@@ -10,8 +10,8 @@
 
     # VM 名稱與目標 IP 對照表
     vm_ip_map:
-      k3s-controlplane: 192.168.100.20
-      k3s-agent: 192.168.100.21
+      k3s-controlplane: 192.168.100.100
+      k3s-agent: 192.168.100.101
 
   tasks:
     - name: Verify vagrant_config exists
@@ -32,7 +32,7 @@
       community.general.ssh_config:
         ssh_config_file: "{{ vagrant_config_path }}"   # 例如 /home/harrison/.ssh/vagrant_config
         host: "{{ vm_name }}"               # k3s-controlplane / k3s-agent
-        hostname: "{{ vm_ip }}"             # 192.168.100.20 / .21
+        hostname: "{{ vm_ip }}"             # 192.168.100.100 / .101
         identity_file: "{{ lookup('env','HOME') }}/.ssh/{{ vm_name }}_key"
         port: 22
         state: present
