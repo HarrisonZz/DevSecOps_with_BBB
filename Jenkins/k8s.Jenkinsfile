@@ -293,7 +293,7 @@ pipeline {
                     rsync -av --mkpath "$WORKSPACE/Kubernetes/monitor/Prometheus/" kubernetes/monitor/prometheus/
                     rsync -av --mkpath "$WORKSPACE/Kubernetes/monitor/Grafana/" kubernetes/monitor/grafana/
 
-                    rsync -av --mkpath "$WORKSPACE/Kubernetes/Nginx/gawtway-api/" kubernetes/gateway_api/
+                    rsync -av --mkpath "$WORKSPACE/Kubernetes/Nginx/gateway-api/" kubernetes/gateway_api/
                     rsync -av --mkpath "$WORKSPACE/Kubernetes/Nginx/certs_for_test/tls_secret.yaml" kubernetes/gateway_api/
 
                     rsync -av --mkpath "$WORKSPACE/Kubernetes/redis/" kubernetes/redis/
@@ -328,6 +328,7 @@ pipeline {
 
         failure {
             echo "❌ Test failed, printing diagnostics before cleanup..."
+            Clean('ELKStack')
             //deleteDir()
         }
 
