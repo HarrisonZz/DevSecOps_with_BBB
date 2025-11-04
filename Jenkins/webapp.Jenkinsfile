@@ -33,9 +33,8 @@ pipeline {
                     withCredentials([string(credentialsId: 'sonar_token', variable: 'SONAR_TOKEN')]) {
                         sh '''
                         docker run --rm \
-                            -e SONAR_HOST_URL=$SONAR_HOST_URL \
-                            -e SONAR_TOKEN=$SONAR_TOKEN \
-                            -v $PWD:/usr/src \
+                            -v "$(pwd)":/usr/src \
+                            -w /usr/src \
                             sonarsource/sonar-scanner-cli:latest
                         '''
                     }
