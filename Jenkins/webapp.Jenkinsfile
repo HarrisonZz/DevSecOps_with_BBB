@@ -16,17 +16,6 @@ pipeline {
             }
         }
 
-        stage('Build Binary (ARMv7)') {
-            steps {
-                
-                sh '''
-                    chmod +x go_build.sh
-                    ./go_build.sh bin
-                '''
-                
-            }
-        }
-
         stage('SonarQube Analysis') {
             steps {
                 withSonarQubeEnv("${SONARQUBE_ENV}") {
@@ -41,6 +30,17 @@ pipeline {
                         '''
                     }
                 }
+            }
+        }
+
+        stage('Build Binary (ARMv7)') {
+            steps {
+                
+                sh '''
+                    chmod +x go_build.sh
+                    ./go_build.sh bin
+                '''
+                
             }
         }
 
