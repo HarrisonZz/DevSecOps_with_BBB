@@ -62,12 +62,14 @@ pipeline {
             steps {
                 
                 sh '''
+                    ./go_build.sh bin
+
                     if ! docker buildx inspect builder0 >/dev/null 2>&1; then
                         docker buildx create --use --name builder0 --driver docker-container
                     else
                         docker buildx use builder0
                     fi
-                    
+
                     ./go_build.sh image
                 '''
             }
