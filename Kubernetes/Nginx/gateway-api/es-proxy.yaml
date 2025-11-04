@@ -3,6 +3,8 @@ kind: Deployment
 metadata:
   name: es-proxy
   namespace: logging
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
 spec:
   replicas: 1
   selector:
@@ -31,6 +33,8 @@ kind: ConfigMap
 metadata:
   name: es-proxy-conf
   namespace: logging
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
 data:
   default.conf: |
     server {
@@ -47,6 +51,8 @@ kind: Service
 metadata:
   name: es-proxy
   namespace: logging
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
 spec:
   ports:
     - port: 9200

@@ -290,10 +290,12 @@ pipeline {
 
                     echo "[*] Copying artifacts from pipeline..."
                     rsync -av --mkpath "$WORKSPACE/Kubernetes/monitor/ELK/" kubernetes/monitor/elk/
+                    rsync -av --mkpath "$WORKSPACE/Kubernetes/Nginx/gateway-api/es-proxy.yaml" kubernetes/monitor/elk/
+
                     rsync -av --mkpath "$WORKSPACE/Kubernetes/monitor/Prometheus/" kubernetes/monitor/prometheus/
                     rsync -av --mkpath "$WORKSPACE/Kubernetes/monitor/Grafana/" kubernetes/monitor/grafana/
 
-                    rsync -av --mkpath "$WORKSPACE/Kubernetes/Nginx/gateway-api/" kubernetes/gateway_api/
+                    rsync -av --exclude="es-proxy.yaml" --mkpath "$WORKSPACE/Kubernetes/Nginx/gateway-api/" kubernetes/gateway_api/
                     rsync -av --mkpath "$WORKSPACE/Kubernetes/Nginx/certs_for_test/tls_secret.yaml" kubernetes/gateway_api/
 
                     rsync -av --mkpath "$WORKSPACE/Kubernetes/redis/" kubernetes/redis/

@@ -1,0 +1,89 @@
+---
+- name: Clone, build, and run BBB IoT app
+  hosts: bbb_iot
+  become: no
+  vars:
+    s3_bucket: "bbb-iot-artifact-registry"
+    s3_key: "artifacts/iot_build.tar.gz"
+    local_artifact_path: "/tmp/iot_build.tar.gz"
+    remote_artifact_path: "/home/debian/iot_build.tar.gz"
+    remote_app_dir: "/home/debian"
+    binary_path: "{{ remote_app_dir }}/build/bin/mqtt_mutual"
+    branch: "main"
+  
+  pre_tasks:
+    - name: Download iot_build.tar.gz from S3
+      delegate_to: localhost
+      aws_s3:
+        bucket: "{{ s3_bucket }}"
+        object: "{{ s3_key }}"
+        dest: "{{ local_artifact_path }}"
+        mode: get
+      register: s3_download
+      retries: 3
+      delay: 5
+      until: s3_download is succeeded
+      vars:
+        ansible_python_interpreter: /usr/bin/python3
+
+    - name: Copy artifact to BBB home directory
+      copy:
+        src: "{{ local_artifact_path }}"
+        dest: "{{ remote_artifact_path }}"
+        mode: '0644'
+
+    - name: Extract artifact on BBB
+      become: yes
+      unarchive:
+        src: "{{ remote_artifact_path }}"
+        dest: "/home/debian/"
+        remote_src: yes
+        creates: "{{ remote_app_dir }}/build"
+
+  tasks:
+    - name: Deploy BeagleBone IoT MQTT client service
+      become: yes
+      copy:
+        dest: /etc/systemd/system/bbb_iot_app.service
+        mode: '0644'
+        content: |
+          [Unit]
+          Description=BeagleBone IoT MQTT Client
+          After=network-online.target
+          Wants=network-online.target
+
+          [Service]
+          Type=simple
+          User=debian
+          Group=debian
+          WorkingDirectory=/home/debian/build/bin
+          ExecStart=/usr/bin/stdbuf -oL -eL /home/debian/build/bin/mqtt_mutual
+          StandardOutput=journal
+          StandardError=journal
+          Restart=on-failure
+          RestartSec=5
+
+          [Install]
+          WantedBy=multi-user.target
+
+    - name: Reload systemd daemon
+      become: yes
+      command: systemctl daemon-reload
+
+    - name: Enable and start bbb_iot_app.service
+      become: yes
+      systemd:
+        name: bbb_iot_app.service
+        enabled: yes
+        state: started
+
+    - name: Verify service status
+      become: yes
+      command: systemctl is-active bbb_iot_app.service
+      register: service_status
+      changed_when: false
+
+    - name: Show current service state
+      debug:
+        msg: "bbb_iot_app.service is {{ service_status.stdout }}"
+

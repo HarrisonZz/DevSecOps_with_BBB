@@ -3,6 +3,8 @@ kind: Deployment
 metadata:
   name: logstash
   namespace: logging
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
 spec:
   replicas: 1
   selector:

@@ -48,7 +48,7 @@ pipeline {
 
               ansible-playbook \
                     -i inventory.yml \
-                    playbook_build.yml \
+                    ci_build.yml \
                     --extra-vars "@vault.yml" \
                     --vault-password-file /tmp/vault_pass.txt
             '''

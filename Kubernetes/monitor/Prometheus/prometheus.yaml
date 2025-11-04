@@ -729,6 +729,8 @@ metadata:
     app.kubernetes.io/name: prometheus-node-exporter
     app.kubernetes.io/instance: prometheus
     app.kubernetes.io/version: "1.9.1"
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
 spec:
   selector:
     matchLabels:
@@ -871,6 +873,8 @@ metadata:
     app.kubernetes.io/name: kube-state-metrics
     app.kubernetes.io/instance: prometheus
     app.kubernetes.io/version: "2.17.0"
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
 spec:
   selector:
     matchLabels:      
@@ -956,6 +960,8 @@ metadata:
     app.kubernetes.io/part-of: prometheus
   name: prometheus-server
   namespace: monitoring
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
 spec:
   strategy:
     type: Recreate

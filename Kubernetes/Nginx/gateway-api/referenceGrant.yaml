@@ -3,6 +3,8 @@ kind: ReferenceGrant
 metadata:
   name: allow-web-to-es
   namespace: logging
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
 spec:
   from:
     - group: gateway.networking.k8s.io

@@ -4,6 +4,7 @@ metadata:
   name: web-app
   labels:
     app: web-app
+  argocd.argoproj.io/sync-wave: "2"
 spec:
   replicas: 1
   progressDeadlineSeconds: 200

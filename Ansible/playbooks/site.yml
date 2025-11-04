@@ -280,7 +280,7 @@
 
     - name: Install K3s agent via get.k3s.io
       shell: |
-        curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="agent --flannel-iface=eth1 --node-ip {{ node_vm_ip }}" K3S_NODE_NAME="{{ node_vm_name }}" K3S_URL="{{ k3s_server_url }}" K3S_TOKEN="{{ node_token_decoded }}" sh -
+        curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="agent --flannel-iface=eth1 --node-label task=monitor --node-ip {{ node_vm_ip }}" K3S_NODE_NAME="{{ node_vm_name }}" K3S_URL="{{ k3s_server_url }}" K3S_TOKEN="{{ node_token_decoded }}" sh -
       args:
         creates: /usr/local/bin/k3s-agent
 

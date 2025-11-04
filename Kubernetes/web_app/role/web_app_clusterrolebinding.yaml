@@ -2,6 +2,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: node-reader-binding
+  argocd.argoproj.io/sync-wave: "1"
 subjects:
 - kind: ServiceAccount
   name: node-inspector
