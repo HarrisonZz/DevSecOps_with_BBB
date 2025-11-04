@@ -35,7 +35,8 @@ pipeline {
                         docker run --rm \
                             -v "$(pwd)":/usr/src \
                             -w /usr/src \
-                            sonarsource/sonar-scanner-cli:latest
+                            sonarsource/sonar-scanner-cli:latest \
+                            -Dproject.settings=/usr/src/.sonar-project.properties
                         '''
                     }
                 }
