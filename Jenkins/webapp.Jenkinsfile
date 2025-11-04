@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         REPO_URL = 'https://github.com/HarrisonZz/web_server_in_go.git'
-
+        SONARQUBE_ENV = 'SonarQube'
     }
 
     stages {
@@ -24,6 +24,22 @@ pipeline {
                     ./go_build.sh bin
                 '''
                 
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv("${SONARQUBE_ENV}") {
+                    withCredentials([string(credentialsId: 'sonar_token', variable: 'SONAR_TOKEN')]) {
+                        sh '''
+                        docker run --rm \
+                            -e SONAR_HOST_URL=$SONAR_HOST_URL \
+                            -e SONAR_TOKEN=$SONAR_TOKEN \
+                            -v $PWD:/usr/src \
+                            sonarsource/sonar-scanner-cli:latest
+                        '''
+                    }
+                }
             }
         }
 
