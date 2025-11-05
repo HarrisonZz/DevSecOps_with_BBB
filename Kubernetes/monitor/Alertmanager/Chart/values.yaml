@@ -363,8 +363,11 @@ configmapReload:
 
   ## Optionally specify extra environment variables to add to alertmanager container
   extraEnv:
-    - secretRef:
+  - name: SMTP_PASS
+    valueFrom:
+      secretKeyRef:
         name: alertmanager-smtp-secret
+        key: SMTP_PASS
     # - name: FOO
     #   value: BAR
 
