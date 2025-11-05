@@ -103,6 +103,13 @@ pipeline {
                     Copy-Item "$env:WORKSPACE\\Terraform_and_Vagrant\\on-premises\\variable.tf" -Destination "terraform\\local" -Force
 
                     git add .
+
+                    if (-not $diffStatus) {
+                        Write-Host "⚠️ No file changes detected — skipping commit and PR creation."
+                        Write-Host "[Hint] Branch $NewBranch will not be pushed because it has no diff."
+                        exit 0
+                    }
+
                     $DateNow = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
                     git commit -m "CI: $env:JOB_NAME build #$env:BUILD_NUMBER at $DateNow"
                     git push -u origin $NewBranch
