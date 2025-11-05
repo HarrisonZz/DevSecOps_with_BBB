@@ -70,14 +70,48 @@ metadata:
 data:
   allow-snippet-annotations: "false"
   alerting_rules.yml: |
-    {}
+    groups:
+      - name: system_resource_monitoring
+        rules:
+          # 警報：記憶體使用率超過 70%
+          - alert: HighMemoryUsage
+            expr: |
+              (
+                (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes
+              )
+              * on(instance) group_left(nodename)
+              node_uname_info
+              > 0.7
+            for: 3m
+            labels:
+              severity: warning
+            annotations:
+              summary: "主機記憶體使用量過高 ({{ $labels.instance }})"
+              description: "節點 {{ $labels.nodename }} ({{ $labels.instance }}) 的記憶體使用率已超過 70%。目前使用率： {{ $value | humanizePercentage }}"
+      - name: test
+        rules:
+          - alert: InstanceDown
+            expr: up == 0
+            for: 1m
+            labels:
+              severity: critical
+            annotations:
+              summary: "服務實例已停止 ({{ $labels.job }})"
+              description: "Job {{ $labels.job }} 上的實例 {{ $labels.instance }} 已經超過 1 分鐘無法連線。"
   alerts: |
     {}
   prometheus.yml: |
     global:
-      evaluation_interval: 1m
-      scrape_interval: 1m
+      evaluation_interval: 15s
+      scrape_interval: 15s
       scrape_timeout: 10s
+
+    alerting:
+      alertmanagers:
+        - static_configs:
+            - targets:
+                - "alertmanager.monitoring.svc:9093"
+
     rule_files:
     - /etc/config/recording_rules.yml
     - /etc/config/alerting_rules.yml

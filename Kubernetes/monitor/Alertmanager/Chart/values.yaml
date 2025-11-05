@@ -289,7 +289,12 @@ configAnnotations: {}
 config:
   enabled: true
   global: {}
-    # slack_api_url: ''
+    smtp_smarthost: "smtp.gmail.com:587"           # SMTP 伺服器
+    smtp_from: "squad1033@gmail.com"                  # 寄件人信箱
+    smtp_auth_username: "squad1033@gmail.com"         # 登入帳號
+    smtp_auth_password: "${SMTP_PASS}"      # ⚠️ Gmail App 密碼或授權碼
+    smtp_require_tls: true                         # 啟用 TLS 加密
+    resolve_timeout: 5m
 
   templates:
     - '/etc/alertmanager/*.tmpl'
@@ -341,7 +346,9 @@ configmapReload:
     #   readOnly: true
 
   ## Optionally specify extra environment variables to add to alertmanager container
-  extraEnv: []
+  extraEnv:
+    - secretRef:
+      name: alertmanager-smtp-secret
     # - name: FOO
     #   value: BAR
 
