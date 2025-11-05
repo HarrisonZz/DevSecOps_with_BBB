@@ -364,7 +364,7 @@ configmapReload:
   ## Optionally specify extra environment variables to add to alertmanager container
   extraEnv:
     - secretRef:
-      name: alertmanager-smtp-secret
+        name: alertmanager-smtp-secret
     # - name: FOO
     #   value: BAR
 
