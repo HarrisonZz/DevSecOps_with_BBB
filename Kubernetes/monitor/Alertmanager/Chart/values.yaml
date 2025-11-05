@@ -388,9 +388,9 @@ extraVolumeMounts:
 extraVolumes: 
   - name: smtp-secret-volume
     secret:
-      secretName: alertmanager-smtp-auth # 步驟二建立的 Secret 名稱
+      secretName: alertmanager-smtp-secret # 步驟二建立的 Secret 名稱
       items:
-        - key: smtp-password     # Secret 中的 Key (步驟二的 Key)
+        - key: SMTP_PASS     # Secret 中的 Key (步驟二的 Key)
           path: smtp-password
 
 ## Optionally specify extra environment variables to add to alertmanager container
