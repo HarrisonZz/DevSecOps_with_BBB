@@ -21,10 +21,11 @@ items:
       {{- if $ingressValues.labels }}
 {{ toYaml $ingressValues.labels | indent 8 }}
       {{- end }}
-      {{- if $ingressValues.annotations }}
       annotations:
+        argocd.argoproj.io/sync-wave: "-3"
+        {{- if $ingressValues.annotations }}
 {{ toYaml $ingressValues.annotations | indent 8 }}
-      {{- end }}
+        {{- end }}
     spec:
       {{- if $ingressValues.className }}
       ingressClassName: {{ $ingressValues.className }}

@@ -106,13 +106,13 @@ readinessProbe:
 service:
   annotations: {}
   labels: {}
-  type: ClusterIP
+  type: NodePort
   port: 9093
   clusterPort: 9094
   loadBalancerIP: ""  # Assign ext IP when Service type is LoadBalancer
   loadBalancerSourceRanges: []  # Only allow access to loadBalancerIP from these IPs
   # if you want to force a specific nodePort. Must be use with service.type=NodePort
-  # nodePort:
+  nodePort: 30903
 
   # Optionally specify extra list of additional ports exposed on both services
   extraPorts: []
@@ -213,7 +213,8 @@ resources: {}
   #   cpu: 10m
   #   memory: 32Mi
 
-nodeSelector: {}
+nodeSelector:
+  task: monitor
 
 tolerations: []
 
@@ -272,7 +273,7 @@ persistence:
   # storageClass: "-"
   accessModes:
     - ReadWriteOnce
-  size: 50Mi
+  size: 300Mi
 
 configAnnotations: {}
   ## For example if you want to provide private data from a secret vault

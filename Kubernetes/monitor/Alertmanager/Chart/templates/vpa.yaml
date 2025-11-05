@@ -4,6 +4,8 @@ kind: VerticalPodAutoscaler
 metadata:
   name: {{ include "alertmanager.fullname" . }}
   namespace: {{ .Release.Namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "-8"
 spec:
   {{- if .Values.verticalPodAutoscaler.recommenders }}
   recommenders:

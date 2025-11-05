@@ -6,6 +6,8 @@ metadata:
   labels:
     {{- include "alertmanager.labels" . | nindent 4 }}
   namespace: {{ include "alertmanager.namespace" . }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "-8"
 spec:
   selector:
     matchLabels:
