@@ -362,12 +362,7 @@ configmapReload:
     #   readOnly: true
 
   ## Optionally specify extra environment variables to add to alertmanager container
-  extraEnv:
-    - name: SMTP_PASS
-      valueFrom:
-        secretKeyRef:
-          name: alertmanager-smtp-secret
-          key: SMTP_PASS
+  extraEnv: []
     # - name: FOO
     #   value: BAR
 
@@ -395,9 +390,12 @@ extraVolumes: []
   #   emptyDir: {}
 
 ## Optionally specify extra environment variables to add to alertmanager container
-extraEnv: []
-  # - name: FOO
-  #   value: BAR
+extraEnv: 
+  - name: SMTP_PASS
+    valueFrom:
+      secretKeyRef:
+        name: alertmanager-smtp-secret
+        key: SMTP_PASS
 
 testFramework:
   enabled: false
