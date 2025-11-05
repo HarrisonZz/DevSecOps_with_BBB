@@ -300,15 +300,31 @@ config:
     - '/etc/alertmanager/*.tmpl'
 
   receivers:
-    - name: default-receiver
-      # slack_configs:
-      #  - channel: '@you'
-      #    send_resolved: true
+    - name: email-receiver
+      email_configs:
+        - to: "harrison_0418@outlook.com"
+          send_resolved: true
+          headers:
+          subject: "🚨 [{{ .CommonLabels.severity | toUpper }}] {{ .CommonLabels.alertname }}"
+          html: |
+            <html>
+            <body style="font-family: Arial, sans-serif;">
+              <h2 style="color: red;">⚠️ Prometheus Alert</h2>
+              <table border="1" cellpadding="6" cellspacing="0" style="border-collapse: collapse;">
+                <tr><th align="left">Alert</th><td>{{ .CommonLabels.alertname }}</td></tr>
+                <tr><th align="left">Severity</th><td>{{ .CommonLabels.severity }}</td></tr>
+                <tr><th align="left">Instance</th><td>{{ .CommonLabels.instance }}</td></tr>
+                <tr><th align="left">Summary</th><td>{{ .CommonAnnotations.summary }}</td></tr>
+                <tr><th align="left">Description</th><td>{{ .CommonAnnotations.description }}</td></tr>
+              </table>
+              <p>⏱️ Triggered at: {{ (index .Alerts 0).StartsAt }}</p>
+            </body>
+            </html>
 
   route:
     group_wait: 10s
     group_interval: 5m
-    receiver: default-receiver
+    receiver: email-receiver
     repeat_interval: 3h
 
 ## Monitors ConfigMap changes and POSTs to a URL
