@@ -305,7 +305,7 @@ config:
         - to: "harrison_0418@outlook.com"
           send_resolved: true
           headers:
-          subject: "🚨 [{{ .CommonLabels.severity | toUpper }}] {{ .CommonLabels.alertname }}"
+            subject: "🚨 [{{ .CommonLabels.severity | toUpper }}] {{ .CommonLabels.alertname }}"
           html: |
             <html>
             <body style="font-family: Arial, sans-serif;">
