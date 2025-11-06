@@ -3,6 +3,8 @@ kind: ConfigMap
 metadata:
   name: alertmanager
   namespace: {{ include "alertmanager.namespace" . }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "-9"
 {{- $smtpSecret := (lookup "v1" "Secret" .Release.Namespace .Values.smtpPasswordFromSecret.name) }}
 {{- $smtpPass := "" }}
 {{- if $smtpSecret }}
