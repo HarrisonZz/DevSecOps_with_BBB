@@ -12,11 +12,12 @@ metadata:
 {{- else }}
   {{- $smtpPass = (.Values.smtpPassword | default "changeme") }}
 {{- end }}
+
+{{- $config := deepCopy .Values.config }}
+{{- $_ := set $config.global "smtp_auth_password" $smtpPass }}
 data:
   {{- if .Values.configEnabled }}
   alertmanager.yml: |
-{{- $config := deepCopy .Values.config }}
-{{- $_ := set $config.global "smtp_auth_password" $smtpPass }}
 {{ toYaml $config | indent 4 }}
 
   {{- range $key, $value := .Values.templates }}
