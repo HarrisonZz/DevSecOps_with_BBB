@@ -18,7 +18,7 @@ data:
       {{- $smtpPass := (index $smtpSecret.data .Values.smtpPasswordFromSecret.key | b64dec) }}
       {{- $_ := set .Values.config.global "smtp_auth_password" $smtpPass }}
     {{- else }}
-      {{- fail (printf "Secret %s not found in namespace %s" .Values.smtpPasswordFromSecret.name .Release.Namespace) }}
+      smtp_auth_password: "{{ .Values.smtpPassword | default "changeme" }}"
     {{- end }}
   {{ toYaml .Values.config | nindent 4 }}
   
