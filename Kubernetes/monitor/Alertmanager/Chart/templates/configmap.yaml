@@ -5,16 +5,8 @@ metadata:
   namespace: {{ include "alertmanager.namespace" . }}
   annotations:
     argocd.argoproj.io/sync-wave: "-9"
-{{- $smtpSecret := (lookup "v1" "Secret" .Release.Namespace .Values.smtpPasswordFromSecret.name) }}
-{{- $smtpPass := "" }}
-{{- if $smtpSecret }}
-  {{- $smtpPass = (index $smtpSecret.data .Values.smtpPasswordFromSecret.key | b64dec) }}
-{{- else }}
-  {{- $smtpPass = (.Values.smtpPassword | default "changeme") }}
-{{- end }}
 
 {{- $config := deepCopy .Values.config }}
-{{- $_ := set $config.global "smtp_auth_password" $smtpPass }}
 data:
   {{- if .Values.configEnabled }}
   alertmanager.yml: |
