@@ -297,7 +297,7 @@ config:
     smtp_smarthost: "smtp.gmail.com:587"           # SMTP 伺服器
     smtp_from: "squad1033@gmail.com"                  # 寄件人信箱
     smtp_auth_username: "squad1033@gmail.com"
-    smtp_auth_password: "/etc/alertmanager/secrets/smtp-password"         # 登入帳號
+    smtp_auth_password_file: "/etc/alertmanager/secrets/smtp-password"         # 登入帳號
     smtp_require_tls: true
     resolve_timeout: 5m
 
