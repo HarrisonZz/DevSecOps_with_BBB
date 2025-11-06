@@ -13,9 +13,13 @@ metadata:
   namespace: {{ include "alertmanager.namespace" . }}
 data:
   alertmanager.yml: |
-  {{- $smtpSecret := (lookup "v1" "Secret" .Values.smtpPasswordFromSecret.name .Release.Namespace) -}}
-  {{- $smtpPass := (index $smtpSecret.data .Values.smtpPasswordFromSecret.key | b64dec) -}}
-  {{- $_ := set .Values.config.global "smtp_auth_password" $smtpPass -}}
+   {{- $smtpSecret := (lookup "v1" "Secret" .Release.Namespace .Values.smtpPasswordFromSecret.name) }}
+    {{- if $smtpSecret }}
+      {{- $smtpPass := (index $smtpSecret.data .Values.smtpPasswordFromSecret.key | b64dec) }}
+      {{- $_ := set .Values.config.global "smtp_auth_password" $smtpPass }}
+    {{- else }}
+      {{- fail (printf "Secret %s not found in namespace %s" .Values.smtpPasswordFromSecret.name .Release.Namespace) }}
+    {{- end }}
   {{ toYaml .Values.config | nindent 4 }}
   
   {{- range $key, $value := .Values.templates }}
