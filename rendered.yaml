@@ -1,0 +1,208 @@
+---
+# Source: alertmanager/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: release-name-alertmanager
+  labels:
+    helm.sh/chart: alertmanager-1.12.0
+    app.kubernetes.io/name: alertmanager
+    app.kubernetes.io/instance: release-name
+    app.kubernetes.io/version: "v0.27.0"
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    argocd.argoproj.io/sync-wave: "-10"
+  namespace: monitoring
+automountServiceAccountToken: true
+---
+# Source: alertmanager/templates/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: alertmanager
+  namespace: monitoring
+  annotations:
+    argocd.argoproj.io/sync-wave: "-9"
+data:
+  alertmanager.yml: |
+    global:
+      resolve_timeout: 5m
+      smtp_auth_username: squad1033@gmail.com
+      smtp_from: squad1033@gmail.com
+      smtp_require_tls: true
+      smtp_smarthost: smtp.gmail.com:587
+    receivers:
+    - email_configs:
+      - headers:
+          subject: "\U0001F6A8 [{{ .CommonLabels.severity | toUpper }}] {{ .CommonLabels.alertname
+            }}"
+        html: |
+          <html>
+          <body style="font-family: Arial, sans-serif;">
+            <h2 style="color: red;">⚠️ Prometheus Alert</h2>
+            <table border="1" cellpadding="6" cellspacing="0" style="border-collapse: collapse;">
+              <tr><th align="left">Alert</th><td>{{ .CommonLabels.alertname }}</td></tr>
+              <tr><th align="left">Severity</th><td>{{ .CommonLabels.severity }}</td></tr>
+              <tr><th align="left">Instance</th><td>{{ .CommonLabels.instance }}</td></tr>
+              <tr><th align="left">Summary</th><td>{{ .CommonAnnotations.summary }}</td></tr>
+              <tr><th align="left">Description</th><td>{{ .CommonAnnotations.description }}</td></tr>
+            </table>
+            <p>⏱️ Triggered at: {{ (index .Alerts 0).StartsAt }}</p>
+          </body>
+          </html>
+        send_resolved: true
+        to: harrison_0418@outlook.com
+      name: email-receiver
+    route:
+      group_interval: 5m
+      group_wait: 10s
+      receiver: email-receiver
+      repeat_interval: 3h
+    templates:
+    - /etc/alertmanager/*.tmpl
+---
+# Source: alertmanager/templates/services.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: release-name-alertmanager
+  labels:
+    helm.sh/chart: alertmanager-1.12.0
+    app.kubernetes.io/name: alertmanager
+    app.kubernetes.io/instance: release-name
+    app.kubernetes.io/version: "v0.27.0"
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    argocd.argoproj.io/sync-wave: "-4"
+  namespace: monitoring
+spec:
+  type: NodePort
+  ports:
+    - port: 9093
+      targetPort: http
+      protocol: TCP
+      name: http
+      nodePort: 30903
+  selector:
+    app.kubernetes.io/name: alertmanager
+    app.kubernetes.io/instance: release-name
+---
+# Source: alertmanager/templates/services.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: release-name-alertmanager-headless
+  labels:
+    helm.sh/chart: alertmanager-1.12.0
+    app.kubernetes.io/name: alertmanager
+    app.kubernetes.io/instance: release-name
+    app.kubernetes.io/version: "v0.27.0"
+    app.kubernetes.io/managed-by: Helm
+  namespace: monitoring
+spec:
+  clusterIP: None
+  ports:
+    - port: 9093
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: alertmanager
+    app.kubernetes.io/instance: release-name
+---
+# Source: alertmanager/templates/statefulset.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: release-name-alertmanager
+  labels:
+    helm.sh/chart: alertmanager-1.12.0
+    app.kubernetes.io/name: alertmanager
+    app.kubernetes.io/instance: release-name
+    app.kubernetes.io/version: "v0.27.0"
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    argocd.argoproj.io/sync-wave: "-5"
+  namespace: monitoring
+spec:
+  replicas: 1
+  minReadySeconds: 0
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: alertmanager
+      app.kubernetes.io/instance: release-name
+  serviceName: release-name-alertmanager-headless
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: alertmanager
+        app.kubernetes.io/instance: release-name
+      annotations:
+    spec:
+      automountServiceAccountToken: true
+      serviceAccountName: release-name-alertmanager
+      nodeSelector:
+        task: monitor
+      securityContext:
+        fsGroup: 65534
+      containers:
+        - name: alertmanager-configmap-reload
+          image: "quay.io/prometheus-operator/prometheus-config-reloader:v0.66.0"
+          imagePullPolicy: "IfNotPresent"
+          args:
+            - --watched-dir=/etc/alertmanager
+            - --reload-url=http://127.0.0.1:9093/-/reload
+          resources:
+            {}
+          volumeMounts:
+            - name: config
+              mountPath: /etc/alertmanager
+        - name: alertmanager
+          securityContext:
+            runAsGroup: 65534
+            runAsNonRoot: true
+            runAsUser: 65534
+          image: "quay.io/prometheus/alertmanager:v0.27.0"
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: status.podIP
+          args:
+            - --storage.path=/alertmanager
+            - --config.file=/etc/alertmanager/alertmanager.yml
+          ports:
+            - name: http
+              containerPort: 9093
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+          resources:
+            {}
+          volumeMounts:
+            - name: config
+              mountPath: /etc/alertmanager
+            - name: storage
+              mountPath: /alertmanager
+      volumes:
+        - name: config
+          configMap:
+            name: release-name-alertmanager
+  volumeClaimTemplates:
+    - metadata:
+        name: storage
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 300Mi
