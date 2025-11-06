@@ -194,7 +194,7 @@ spec:
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:
-            {{- if .Values.config.enabled }}
+            {{- if .Values.configEnabled }}
             - name: config
               mountPath: /etc/alertmanager
             {{- end }}
@@ -213,7 +213,7 @@ spec:
         {{- toYaml . | nindent 8 }}
         {{- end }}
       volumes:
-        {{- if .Values.config.enabled }}
+        {{- if .Values.configEnabled }}
         - name: config
           configMap:
             name: {{ include "alertmanager.fullname" . }}
