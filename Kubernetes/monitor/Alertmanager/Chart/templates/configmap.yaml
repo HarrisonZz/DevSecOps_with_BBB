@@ -3,21 +3,20 @@ kind: ConfigMap
 metadata:
   name: alertmanager-config
   namespace: {{ include "alertmanager.namespace" . }}
+{{- $smtpSecret := (lookup "v1" "Secret" .Release.Namespace .Values.smtpPasswordFromSecret.name) }}
+{{- $smtpPass := "" }}
+{{- if $smtpSecret }}
+  {{- $smtpPass = (index $smtpSecret.data .Values.smtpPasswordFromSecret.key | b64dec) }}
+{{- else }}
+  {{- $smtpPass = (.Values.smtpPassword | default "changeme") }}
+{{- end }}
 data:
   alertmanager.yml: |
-    {{- $smtpSecret := (lookup "v1" "Secret" .Values.smtpPasswordFromSecret.name .Release.Namespace) }}
-    {{- if $smtpSecret }}
-      {{- $smtpPass := (index $smtpSecret.data .Values.smtpPasswordFromSecret.key | b64dec) }}
+    global:
       smtp_auth_password: "{{ $smtpPass }}"
-    {{- else }}
-      smtp_auth_password: "{{ .Values.smtpPassword | default "changeme" }}"
-    {{- end }}
-
-    {{- with .Values.config }}
-    {{ toYaml . | nindent 4 }}
-    {{- end }}
+{{ toYaml .Values.config | indent 4 }}
 
   {{- range $key, $value := .Values.templates }}
   {{ $key }}: |-
-    {{- $value | nindent 4 }}
+{{ $value | indent 4 }}
   {{- end }}
