@@ -286,6 +286,10 @@ configAnnotations: {}
   ## Example for inject secret
   # slack_api_url: '${vault:secret/data/slack-hook-alerts#URL}'
 
+smtpPasswordFromSecret:
+  name: alertmanager-smtp-auth
+  key: smtp-password
+
 config:
   enabled: true
   global:
