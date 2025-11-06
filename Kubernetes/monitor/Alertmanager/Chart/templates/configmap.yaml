@@ -1,29 +1,23 @@
-{{- if .Values.config.enabled }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ include "alertmanager.fullname" . }}
-  labels:
-    {{- include "alertmanager.labels" . | nindent 4 }}
-  annotations:
-    argocd.argoproj.io/sync-wave: "-9"
-    {{- with .Values.configAnnotations }}
-  {{- toYaml . | nindent 4 }}
-    {{- end }}
+  name: alertmanager-config
   namespace: {{ include "alertmanager.namespace" . }}
 data:
   alertmanager.yml: |
     {{- $smtpSecret := (lookup "v1" "Secret" .Values.smtpPasswordFromSecret.name .Release.Namespace) }}
     {{- if $smtpSecret }}
       {{- $smtpPass := (index $smtpSecret.data .Values.smtpPasswordFromSecret.key | b64dec) }}
-      {{- $_ := set .Values.config.global "smtp_auth_password" $smtpPass }}
+      smtp_auth_password: "{{ $smtpPass }}"
     {{- else }}
       smtp_auth_password: "{{ .Values.smtpPassword | default "changeme" }}"
     {{- end }}
-    {{ toYaml .Values.config | nindent 4 }}
-  
+
+    {{- with .Values.config }}
+    {{ toYaml . | nindent 4 }}
+    {{- end }}
+
   {{- range $key, $value := .Values.templates }}
   {{ $key }}: |-
     {{- $value | nindent 4 }}
   {{- end }}
-{{- end }}
