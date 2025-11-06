@@ -17,8 +17,7 @@ data:
   {{- $smtpPass := (index $smtpSecret.data .Values.smtpPasswordFromSecret.key | b64dec) -}}
   {{- $_ := set .Values.config.global "smtp_auth_password" $smtpPass -}}
   {{ toYaml .Values.config | nindent 4 }}
-  {{- $config := omit .Values.config "enabled" }}
-  {{- toYaml $config | default "{}" | nindent 4  }}
+  
   {{- range $key, $value := .Values.templates }}
   {{ $key }}: |-
     {{- $value | nindent 4 }}
