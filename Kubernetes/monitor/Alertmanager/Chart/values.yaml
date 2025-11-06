@@ -382,19 +382,10 @@ templates: {}
 #   alertmanager.tmpl: |-
 
 ## Optionally specify extra list of additional volumeMounts
-extraVolumeMounts:
-  - name: smtp-secret-volume 
-    mountPath: /etc/alertmanager/secrets # 掛載點的目錄
-    readOnly: true
+extraVolumeMounts: []
 
 ## Optionally specify extra list of additional volumes
-extraVolumes: 
-  - name: smtp-secret-volume
-    secret:
-      secretName: alertmanager-smtp-secret # 步驟二建立的 Secret 名稱
-      items:
-        - key: SMTP_PASS     # Secret 中的 Key (步驟二的 Key)
-          path: smtp-password
+extraVolumes: []
 
 ## Optionally specify extra environment variables to add to alertmanager container
 extraEnv: []
