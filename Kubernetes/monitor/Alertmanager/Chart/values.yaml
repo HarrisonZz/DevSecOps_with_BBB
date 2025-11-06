@@ -361,10 +361,10 @@ configmapReload:
   extraArgs: {}
 
   ## Optionally specify extra list of additional volumeMounts
-  extraVolumeMounts: []
-    # - name: extras
-    #   mountPath: /usr/share/extras
-    #   readOnly: true
+  extraVolumeMounts:
+    - name: smtp-secret-volume
+      mountPath: /etc/alertmanager/secrets
+      readOnly: true
 
   ## Optionally specify extra environment variables to add to alertmanager container
   extraEnv: []
