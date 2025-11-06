@@ -290,8 +290,9 @@ smtpPasswordFromSecret:
   name: alertmanager-smtp-auth
   key: smtp-password
 
+configEnabled: true 
+
 config:
-  enabled: true
   global:
     smtp_smarthost: "smtp.gmail.com:587"           # SMTP 伺服器
     smtp_from: "squad1033@gmail.com"                  # 寄件人信箱

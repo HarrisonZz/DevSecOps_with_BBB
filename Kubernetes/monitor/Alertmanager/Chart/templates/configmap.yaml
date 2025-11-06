@@ -13,6 +13,7 @@ metadata:
   {{- $smtpPass = (.Values.smtpPassword | default "changeme") }}
 {{- end }}
 data:
+  {{- if .Values.configEnabled }}
   alertmanager.yml: |
     global:
       smtp_auth_password: "{{ $smtpPass }}"
