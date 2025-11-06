@@ -13,14 +13,14 @@ metadata:
   namespace: {{ include "alertmanager.namespace" . }}
 data:
   alertmanager.yml: |
-    {{- $smtpSecret := (lookup "v1" "Secret" .Release.Namespace .Values.smtpPasswordFromSecret.name) }}
+    {{- $smtpSecret := (lookup "v1" "Secret" .Values.smtpPasswordFromSecret.name .Release.Namespace) }}
     {{- if $smtpSecret }}
       {{- $smtpPass := (index $smtpSecret.data .Values.smtpPasswordFromSecret.key | b64dec) }}
       {{- $_ := set .Values.config.global "smtp_auth_password" $smtpPass }}
     {{- else }}
       smtp_auth_password: "{{ .Values.smtpPassword | default "changeme" }}"
     {{- end }}
-  {{ toYaml .Values.config | nindent 4 }}
+    {{ toYaml .Values.config | nindent 4 }}
   
   {{- range $key, $value := .Values.templates }}
   {{ $key }}: |-
