@@ -12,7 +12,7 @@
 
 ### 🔹 Components
 - **CI/CD**：Jenkins + GitHub Actions + ArgoCD
-- **Infrastructure**：Terraform + Ansible
+- **Infrastructure**：Terraform + Ansible + Vagrant
 - **Monitoring**：Prometheus + Grafana + AlertManager
 - **Logging**：Fluent Bit + Logstash + ElasticSearch + Kibana
 - **Edge Device**：BeagleBone Black (K3s agent + HTTP server + AWS MQTT Client)
@@ -21,7 +21,7 @@
 ---
 
 #### 🏗️ Infrastructure
-- **Terraform + Ansible**：自動化建置與環境配置
+- **Terraform + Ansible + Vagrant**：自動化建置與環境配置
 - **K3s Cluster**：輕量化 Kubernetes，部署應用與監控堆疊
 
 #### ⚙️ CI/CD & GitOps
