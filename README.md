@@ -17,6 +17,7 @@
 - **Logging**：Fluent Bit + Logstash + ElasticSearch + Kibana
 - **Edge Device**：BeagleBone Black (K3s agent + HTTP server + AWS MQTT Client)
 - **Cloud Services**：Cloudflare Tunnel, AWS Lambda, API Gateway, Event Bridge, IoT Core, Aurora Serverless, S3
+- **Security**：SonarQube + Trivy + OIDC
 
 ---
 
