@@ -40,4 +40,20 @@ spec:
         - name: es-proxy
           namespace: logging
           port: 9200
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /kibana
+      filters:
+        # 移除 prefix /es，讓後端接收到的路徑正確（可選）
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: /
+      backendRefs:
+        - name: es-proxy
+          namespace: logging
+          port: 5601
+
 

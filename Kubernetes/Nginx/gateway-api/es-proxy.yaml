@@ -19,7 +19,10 @@ spec:
         - name: nginx
           image: nginx:alpine
           ports:
-            - containerPort: 8080
+            - name: es
+              containerPort: 8080   # 對應 ES proxy
+            - name: kibana
+              containerPort: 8081   # 對應 Kibana proxy
           volumeMounts:
             - name: nginx-conf
               mountPath: /etc/nginx/conf.d
@@ -45,6 +48,21 @@ data:
         proxy_ssl_verify off;  # 關閉 CA 驗證（自簽證書會失敗）
       }
     }
+
+    server {
+      listen 8081;
+      location / {
+        # 這裡通常不需要額外加 Authorization header，
+        # 讓 Kibana 自己處理登入即可
+        proxy_pass http://kibana-kibana.logging.svc.cluster.local:5601;
+
+        # 保留一些常見的 header
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+      }
+    }
 ---
 apiVersion: v1
 kind: Service
@@ -55,7 +73,11 @@ metadata:
     argocd.argoproj.io/sync-wave: "2"
 spec:
   ports:
-    - port: 9200
-      targetPort: 8080
+    - name: es
+      port: 9200        
+      targetPort: 8080   
+    - name: kibana
+      port: 5601         
+      targetPort: 8081   
   selector:
     app: es-proxy
