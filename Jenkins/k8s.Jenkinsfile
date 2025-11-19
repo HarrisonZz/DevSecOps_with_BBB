@@ -100,6 +100,7 @@ pipeline {
                     echo "$NOT_READY"
                     exit 1
                 fi
+                kubectl label nodes node-agent task=monitor
                 echo "✅ All nodes are Ready."
                 '''
             }
