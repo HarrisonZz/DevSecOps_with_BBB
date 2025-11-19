@@ -24,6 +24,7 @@ def Clean(String stageName) {
             kubectl delete -f Kubernetes/Nginx/gateway-api/referenceGrant.yaml --ignore-not-found=true
             helm uninstall kibana -n logging || true
             kubectl label nodes node-agent task- || true
+            kubectl delete namespace logging
             '''
         }
 
@@ -32,6 +33,7 @@ def Clean(String stageName) {
             echo "[Prometheus&Grafana] 清理監控堆疊資源"
             kubectl delete -f Kubernetes/monitor/Grafana/grafana.yaml --ignore-not-found=true
             kubectl delete -f Kubernetes/monitor/Prometheus/prometheus.yaml --ignore-not-found=true
+            kubectl delete namespace monitoring
             '''
         }
 
