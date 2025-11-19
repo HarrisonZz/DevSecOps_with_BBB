@@ -42,7 +42,26 @@ data:
   default.conf: |
     server {
       listen 8080;
+
+      location ~ ^/(_cluster|_cat|_nodes|_tasks) {
+        return 403;
+      }
+
+      # bulk insert, update
+      location ~ ^/.*/_bulk {
+        return 403;
+      }
+
+      # modify settings or mappings
+      location ~ ^/.*/_(settings|mapping|update) {
+        return 403;
+      }
+
       location / {
+      if ($request_method !~* (GET|HEAD)) {
+          return 403;
+      }
+
         proxy_set_header Authorization "Basic ZWxhc3RpYzpVYWdvaHR2dnZhN1FqVjlJ"; # username:password
         proxy_pass https://elasticsearch-master.logging.svc.cluster.local:9200;
         proxy_ssl_verify off;  # 關閉 CA 驗證（自簽證書會失敗）
