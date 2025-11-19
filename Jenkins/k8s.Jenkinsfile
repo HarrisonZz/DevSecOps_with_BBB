@@ -194,11 +194,13 @@ pipeline {
             sh '''
 
             echo "[*] Applying Prometheus and Grafana manifests..."
-
-            kubectl apply -f Prometheus/prometheus.yaml
+            
+            kubectl create namespace monitoring
             kubectl -n monitoring delete secret alertmanager-smtp-secret --ignore-not-found
             kubectl -n monitoring create secret generic alertmanager-smtp-secret --from-literal=smtp_pass="$GMAIL_PASS"
-            
+
+            kubectl apply -f Prometheus/prometheus.yaml
+
             echo "[✔] Kubernetes Secret created: alertmanager-smtp-secret"
             kubectl rollout status deploy/prometheus-server -n monitoring --timeout=600s
             kubectl rollout status daemonset/prometheus-prometheus-node-exporter -n monitoring --timeout=600s
@@ -230,7 +232,7 @@ pipeline {
         dir('Kubernetes/monitor') {
             sh '''
 
-            kubectl label nodes node-agent task=monitor
+            kubectl create namespace logging
             echo "[*] Applying ELK Stack manifests..."
 
             echo "[*] Waiting for ElasticSearch startup..."
