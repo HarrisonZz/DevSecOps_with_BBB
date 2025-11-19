@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ template "tempo.name" . }}
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+  labels:
+    {{- include "tempo.labels" . | nindent 4 }}
+data:
+  overrides.yaml: |
+    overrides:
+      {{- toYaml .Values.tempo.per_tenant_overrides | nindent 6 }}
+  tempo.yaml: |
+    {{- tpl .Values.config . | nindent 4 }}

@@ -188,19 +188,6 @@ pipeline {
         }
     }
 
-    stage('Create Alertmanager Secret') {
-        steps {
-            withCredentials([string(credentialsId: 'gmail-app-pass', variable: 'GMAIL_PASS')]) {
-            sh '''
-                kubectl -n monitoring delete secret alertmanager-smtp-secret --ignore-not-found
-                kubectl -n monitoring create secret generic alertmanager-smtp-secret \
-                --from-literal=smtp_pass="$GMAIL_PASS"
-                echo "[✔] Kubernetes Secret created: alertmanager-smtp-secret"
-            '''
-            }
-        }
-    }
-
     stage('Deploy Prometheus and Grafana to K3S') {
       steps {
         dir('Kubernetes/monitor') {
@@ -234,6 +221,19 @@ pipeline {
         }
     }
 
+    stage('Create Alertmanager Secret') {
+        steps {
+            withCredentials([string(credentialsId: 'gmail-app-pass', variable: 'GMAIL_PASS')]) {
+            sh '''
+                kubectl -n monitoring delete secret alertmanager-smtp-secret --ignore-not-found
+                kubectl -n monitoring create secret generic alertmanager-smtp-secret \
+                --from-literal=smtp_pass="$GMAIL_PASS"
+                echo "[✔] Kubernetes Secret created: alertmanager-smtp-secret"
+            '''
+            }
+        }
+    }
+    
     stage('Deploy ELK Stack to K3S') {
       steps {
         dir('Kubernetes/monitor') {
