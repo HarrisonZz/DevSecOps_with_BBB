@@ -143,6 +143,7 @@ config:
         insecure: true
     prometheusremotewrite:
       endpoint: "http://prometheus-server.monitoring.svc:9090/api/v1/write"
+    debug: {}
   extensions:
     # The health_check extension is mandatory for this chart.
     # Without the health_check extension the collector will fail the readiness and liveness probes.
