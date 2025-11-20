@@ -58,9 +58,9 @@ data:
       }
 
       location / {
-      if ($request_method !~* (GET|HEAD)) {
-          return 403;
-      }
+        if ($request_method !~* (GET|HEAD)) {
+            return 403;
+        }
 
         proxy_set_header Authorization "Basic ZWxhc3RpYzpVYWdvaHR2dnZhN1FqVjlJ"; # username:password
         proxy_pass https://elasticsearch-master.logging.svc.cluster.local:9200;
