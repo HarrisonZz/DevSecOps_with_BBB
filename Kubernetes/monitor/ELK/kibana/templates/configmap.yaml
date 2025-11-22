@@ -4,7 +4,8 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: {{ template "kibana.fullname" . }}-config
-  argocd.argoproj.io/sync-wave: "0"
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
   labels: {{ include "kibana.labels" . | nindent 4 }}
 data:
 {{- range $path, $config := .Values.kibanaConfig }}

@@ -19,6 +19,8 @@ def Clean(String stageName) {
             kubectl delete -f Kubernetes/monitor/ELK/logstash.yaml --ignore-not-found=true
             kubectl delete -f Kubernetes/monitor/ELK/logstash_configmap.yaml --ignore-not-found=true
             kubectl delete -f Kubernetes/monitor/ELK/es.yaml --ignore-not-found=true
+            helm uninstall otel-collector -n logging
+            helm uninstall tempo -n logging
             kubectl delete -f Kubernetes/monitor/ELK/test-elasticsearch-health.yaml --ignore-not-found=true
             kubectl delete -f Kubernetes/Nginx/gateway-api/es-proxy.yaml --ignore-not-found=true
             kubectl delete -f Kubernetes/Nginx/gateway-api/referenceGrant.yaml --ignore-not-found=true
@@ -237,6 +239,10 @@ pipeline {
 
             kubectl create namespace logging
             echo "[*] Applying ELK Stack manifests..."
+
+            helm install otel-collector ./OTel-Collector -n logging
+
+            helm install tempo ./Tempo -n logging
 
             echo "[*] Waiting for ElasticSearch startup..."
             kubectl apply -f ELK/es.yaml
