@@ -39,7 +39,7 @@ spec:
             memory: "60Mi"
       containers:
       - name: web-app
-        image: harrisonchen0418/go_build:BBB
+        image: harrisonchen0418/go_build:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 8080
