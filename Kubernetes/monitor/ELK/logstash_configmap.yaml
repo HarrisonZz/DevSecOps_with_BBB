@@ -25,7 +25,7 @@ data:
       }
 
       mutate {
-      add_field => {
+        add_field => {
           "service" => "bbb-web-server"
           "source_node" => "${HOSTNAME}"
         }
