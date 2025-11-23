@@ -66,6 +66,11 @@ data:
       name: Prometheus
       type: prometheus
       url: http://prometheus-server.monitoring.svc.cluster.local
+    - name: Tempo
+      type: tempo
+      access: proxy
+      uid: tempo
+      url: http://tempo.logging.svc:3200
     deleteDatasources: []
 ---
 # Source: grafana/templates/clusterrole.yaml
