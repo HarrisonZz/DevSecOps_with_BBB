@@ -21,10 +21,7 @@ pipeline {
                 withSonarQubeEnv("${SONARQUBE_ENV}") {
                     withCredentials([string(credentialsId: 'sonar_token', variable: 'SONAR_TOKEN')]) {
                         sh '''
-                        DOCKER_GATEWAY_IP=$(docker network inspect bridge --format '{{(index .IPAM.Config 0).Gateway}}')
-
                         docker run --rm \
-                            --add-host host.docker.internal:${DOCKER_GATEWAY_IP} \
                             -e SONAR_TOKEN=$SONAR_TOKEN \
                             -v "$(pwd)":/usr/src \
                             -w /usr/src \
