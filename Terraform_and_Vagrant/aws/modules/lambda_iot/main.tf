@@ -1,18 +1,3 @@
-terraform {
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 5.0"
-    }
-  }
-  required_version = ">= 1.5.0"
-}
-
-provider "aws" {
-  region  = "ap-northeast-2"
-  profile = "admin"
-}
-
 resource "aws_iam_role" "lambda_exec" {
   name = "lambda_iotcore_exec_role"
 
@@ -55,12 +40,12 @@ data "aws_caller_identity" "current" {}
 
 data "archive_file" "lambda_zip" {
   type        = "zip"
-  source_file = "${path.module}/lambda_program/handler.py"
+  source_file = "${path.module}/${var.source_file}"
   output_path = "${path.module}/lambda.zip"
 }
 
 resource "aws_lambda_function" "iot_lambda" {
-  function_name    = "BBBIoTCorePost"
+  function_name    = var.function_name
   filename         = data.archive_file.lambda_zip.output_path
   source_code_hash = data.archive_file.lambda_zip.output_base64sha256
   handler          = "handler.lambda_handler"
@@ -70,7 +55,7 @@ resource "aws_lambda_function" "iot_lambda" {
 
   environment {
     variables = {
-      IOT_ENDPOINT = "https://a2jf76kc2clrd8-ats.iot.ap-northeast-2.amazonaws.com"
+      IOT_ENDPOINT = var.iot_endpoint
     }
   }
 }

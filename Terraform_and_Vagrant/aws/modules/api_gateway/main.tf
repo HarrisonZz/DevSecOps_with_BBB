@@ -1,18 +1,3 @@
-terraform {
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 5.0"
-    }
-  }
-  required_version = ">= 1.5.0"
-}
-
-provider "aws" {
-  region  = "ap-northeast-2"
-  profile = "admin"
-}
-
 resource "aws_apigatewayv2_api" "http_api" {
   name          = "iotcore-http-api"
   protocol_type = "HTTP"
