@@ -1,54 +1,67 @@
 # DevSecOps_with_BBB
- A hybrid edge-to-cloud DevOps architecture integrating K3s, Jenkins, ArgoCD, Terraform, Ansible and AWS IoT Core.
 
+A hybrid edge-to-cloud DevOps architecture integrating K3s, Jenkins, ArgoCD, Terraform, Ansible, and AWS IoT Core.
 
 ## 📘 Overview
-此專案主要目的為在邊緣裝置（BeagleBone Black）與雲端基礎設施之間建立一條端到端的 DevSecOps 流程，包含 CI/CD、自動化佈署、監控、以及安全控制。
+
+This project demonstrates an end-to-end DevSecOps workflow connecting edge devices (BeagleBone Black) with cloud infrastructure. It covers CI/CD, automated provisioning and deployment, monitoring, logging, and security controls.
 
 ---
 
 ## 🧱 Architecture
+
 ![Architecture Diagram](docs/images/architecture.png)
 
 ### 🔹 Components
-- **CI/CD**：Jenkins + GitHub Actions + ArgoCD
-- **Infrastructure**：Terraform + Ansible + Vagrant
-- **Monitoring**：Prometheus + Grafana + AlertManager
-- **Logging**：Fluent Bit + Logstash + ElasticSearch + Kibana
-- **Edge Device**：BeagleBone Black (K3s agent + HTTP server + AWS MQTT Client)
-- **Cloud Services**：Cloudflare Tunnel, AWS Lambda, API Gateway, Event Bridge, IoT Core, Aurora Serverless, S3
-- **Security**：SonarQube + Trivy + OIDC
+
+- **CI/CD:** Jenkins + GitHub Actions + ArgoCD
+- **Infrastructure:** Terraform + Ansible + Vagrant
+- **Monitoring:** Prometheus + Grafana + AlertManager
+- **Logging:** Fluent Bit + Logstash + Elasticsearch + Kibana
+- **Edge Device:** BeagleBone Black (K3s agent + HTTP server + AWS MQTT client)
+- **Cloud Services:** Cloudflare Tunnel, AWS Lambda, API Gateway, EventBridge, IoT Core, Aurora Serverless, S3
+- **Security:** SonarQube + Trivy + OIDC
 
 ---
 
 #### 🏗️ Infrastructure
-- **Terraform + Ansible + Vagrant**：自動化建置與環境配置
-- **K3s Cluster**：輕量化 Kubernetes，部署應用與監控堆疊
+
+- **Terraform + Ansible + Vagrant:** Automate infrastructure provisioning and environment configuration.
+- **K3s Cluster:** Provide a lightweight Kubernetes environment for deploying applications and the monitoring stack.
 
 #### ⚙️ CI/CD & GitOps
-- **Jenkins**：負責 **CI 階段** 的自動化建置與測試流程，生成可部署的 Artifact。當測試通過後，會自動對 **CD Repository** 建立 Pull Request，作為部署審核的觸發點。
-- **GitHub Actions**：負責 **CD 階段** 的自動化部署流程。當 Pull Request 經人工審核合併後，對應的 Workflow 會被觸發以進行環境建構與應用部署。
-- **ArgoCD**：在 Kubernetes 平台上執行 **GitOps 模式** 的自動化同步與版本控管，確保叢集狀態與 Git 儲存庫的設定一致。
+
+- **Jenkins:** Handles the **CI stage**, including automated builds and tests, and produces deployable artifacts. After tests pass, it opens a pull request against the **CD repository** to initiate deployment review.
+- **GitHub Actions:** Handles the **CD stage**. Once the pull request is reviewed and merged, the corresponding workflow provisions infrastructure and deploys applications.
+- **ArgoCD:** Implements **GitOps-based** synchronization and version control on Kubernetes, keeping the cluster's desired state aligned with the Git repository.
 
 #### 🧩 Web / Application Layer
-- **Go-based HTTP Server**：運行在 BBB 的主應用Pod，提供 RESTful API 供外部系統存取，並透過 Kubernetes API 與集群互動
-> 📎 The HTTP server authenticates to the in-cluster API using a mounted ServiceAccount token, enabling secure read access to pod and node resources.
-- **Nginx (HTTPS upstream proxy)**：用於處理叢集內部的協定轉換，將由 Gateway API 的 **HTTPRoute** 傳入的流量轉送至僅支援 **HTTPS** 的後端服務
-> 💡 Note: Since the current Gateway API implementation does not support HTTPS upstreams, Nginx is deployed as a bridging proxy to handle HTTP-to-HTTPS conversion for internal services such as Elasticsearch.
-- **Redis (In-memory Cache)**：減少查詢負載、加快**HTTP Server**回應時間
-- **Cloudflare Tunnel (Secure Ingress)**：作為零信任入口，將 K3s 叢集內部服務（如 ArgoCD、Grafana、Kibana、HTTP Server）安全暴露到 Internet。
 
-#### 🔸 For IoT Communication
-- **AWS IoT Core**：接收 MQTT 訊息並驗證裝置身份
-- **AWS Lambda (IoT Publisher)**：由 API Gateway 觸發，用於根據使用者請求組合控制指令並 Publish 到 IoT Core Topic，以控制邊緣裝置的狀態或動作。
-- **API Gateway**：提供外部 HTTP 介面，讓使用者可透過 REST API 發送控制命令，背後由 Lambda 轉換成 MQTT 訊息發佈至 IoT Core。
+- **Go-based HTTP Server:** Runs as the primary application Pod on the BeagleBone Black, exposes RESTful APIs to external clients, and interacts with the cluster through the Kubernetes API.
 
-#### 🔸 For Web / HTTP Server
-- **AWS Lambda (Data Processor)**：負責查詢 Elasticsearch（ES）以獲取邊緣裝置的日誌與監控資料，並將整理後的結果寫入 Aurora Serverless，用於後續分析與歷史查詢。
-- **Amazon EventBridge (Scheduler)**：每五分鐘自動觸發 Data Processor Lambda，定期同步與更新邊緣資料。
-- **Amazon Aurora Serverless (MySQL)**：作為核心資料庫，儲存經 Lambda 處理的狀態紀錄與歷史資料。
-- **Amazon S3 (Artifact Storage)**：儲存由 Jenkins 產生的應用與韌體 Artifact，供後續部署或版本追蹤使用。
+> 📎 The HTTP server authenticates to the in-cluster API using a mounted ServiceAccount token, enabling authenticated read access to Pod and Node resources.
+
+- **Nginx (HTTPS Upstream Proxy):** Bridges protocol differences by forwarding traffic received through a Gateway API **HTTPRoute** to backends that require **HTTPS**.
+
+> 💡 Note: The Gateway API implementation used in this project did not support the required HTTPS upstream configuration. Nginx acts as a bridging proxy for internal services such as Elasticsearch.
+
+- **Redis (In-memory Cache):** Reduces repeated queries and improves HTTP server response times.
+- **Cloudflare Tunnel (Secure Ingress):** Provides a secure entry point for exposing selected services within the K3s cluster—such as ArgoCD, Grafana, Kibana, and the HTTP server—to the internet.
+
+#### 🔸 IoT Communication
+
+- **AWS IoT Core:** Receives MQTT messages and authenticates device identities.
+- **AWS Lambda (IoT Publisher):** Triggered by API Gateway, transforms incoming requests into control commands, and publishes them to AWS IoT Core topics to control edge-device behavior.
+- **API Gateway:** Exposes an external HTTP interface through which clients issue REST requests; Lambda converts those requests into MQTT messages.
+
+#### 🔸 Data Processing for the Web / HTTP Server
+
+- **AWS Lambda (Data Processor):** Queries Elasticsearch for edge-device log and monitoring data, processes the results, and stores them in Aurora Serverless for historical queries and further analysis.
+- **Amazon EventBridge (Scheduler):** Invokes the data-processing Lambda every five minutes to synchronize edge-device information.
+- **Amazon Aurora Serverless (MySQL):** Stores processed status records and historical data.
+- **Amazon S3 (Artifact Storage):** Stores application and firmware artifacts produced by Jenkins for deployment and version tracking.
 
 #### 📊 Monitoring & Logging
-- **Prometheus + Grafana + AlertManager**：系統與應用層監控, 告警時發送E-mail
-- **Fluent-Bit + ELK Stack**：集中式日誌收集與查詢
+
+- **Prometheus + Grafana + AlertManager:** Collect and visualize infrastructure and application metrics, with email notifications for alerts.
+- **Fluent Bit + ELK Stack:** Provide centralized log collection, processing, storage, and search.
